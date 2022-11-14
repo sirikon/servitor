@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+printf "%s" "▓▒░"
+printf " %s" "$(basename "${BASH_SOURCE[0]}")" "${@}"
+printf "%s\n" ""
