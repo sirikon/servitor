@@ -1,7 +1,7 @@
 export class DockerDriver {
   constructor() {}
 
-  public async run(image: string, command: string, stdout: WritableStream, stderr: WritableStream) {
+  public async run(image: string, command: string, stdout: WritableStream<Uint8Array>, stderr: WritableStream<Uint8Array>) {
     const cmd = new Deno.Command("docker", {
       args: ["run", image, "sh", "-c", command],
       stdin: "null",
