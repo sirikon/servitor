@@ -51,6 +51,15 @@ def cli():
             '-f', './docker/docker-compose.yml',
             'up', '-d')
 
+    @command
+    def devenv_sh():
+        cmd('docker', 'compose',
+            '-p', 'servitor-devenv',
+            '--project-directory', '.',
+            '-f', './docker/docker-compose.yml',
+            'exec', 'server', 'sh')
+
+
 
 
 

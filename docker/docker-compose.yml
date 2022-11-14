@@ -1,11 +1,7 @@
 services:
   server:
+    privileged: true
     build:
       dockerfile: ./docker/Dockerfile
     volumes:
-      - ../src:/code/src:ro
-      - ./srkbz:/usr/local/bin/srkbz:ro
-      - ./mockbin:/usr/local/bin/ufw:ro
-      - ./mockbin:/usr/local/bin/systemctl:ro
-      - ./cache/config:/srkbz/config
-      - ./cache/deno:/root/.cache/deno
+      - ./src:/root/servitor/src:ro
