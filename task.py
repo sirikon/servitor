@@ -1,10 +1,47 @@
 #!/usr/bin/env python3
 
+DENO_ENTRY = 'src/main.ts'
+DENO_EXEC_FLAGS = ['-A', '--unstable']
+DENO_CONFIG = ['--config', 'src/deno.json']
+DENO_IMPORT_MAP = ['--import-map', 'src/import_map.json']
+DENO_LOCK = ['--lock', 'src/lock.json']
+
+
 def cli():
 
     @command
     def run(*args):
-        cmd('deno', 'run', 'src/main.ts', *args)
+        cmd('deno', 'run',
+            *DENO_EXEC_FLAGS,
+            *DENO_CONFIG,
+            *DENO_IMPORT_MAP,
+            *DENO_LOCK,
+            DENO_ENTRY, *args)
+
+    @command
+    def cache():
+        cmd('deno', 'cache',
+            *DENO_CONFIG,
+            *DENO_IMPORT_MAP,
+            *DENO_LOCK,
+            DENO_ENTRY)
+
+    @command
+    def lock():
+        cmd('deno', 'cache',
+            *DENO_CONFIG,
+            *DENO_IMPORT_MAP,
+            *DENO_LOCK,
+            '--lock-write',
+            DENO_ENTRY)
+
+    @command
+    def fmt():
+        cmd('deno', 'fmt', *DENO_CONFIG, 'src')
+
+    @command
+    def lint():
+        cmd('deno', 'lint', *DENO_CONFIG, 'src')
 
 
 
