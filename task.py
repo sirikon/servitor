@@ -43,6 +43,13 @@ def cli():
     def lint():
         cmd('deno', 'lint', *DENO_CONFIG, 'src')
 
+    @command
+    def devenv():
+        cmd('docker', 'compose',
+            '-p', 'servitor-devenv',
+            '--project-directory', '.',
+            '-f', './docker/docker-compose.yml',
+            'up', '-d')
 
 
 
