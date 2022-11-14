@@ -2,6 +2,7 @@
   "editor.detectIndentation": false,
   "editor.tabSize": 2,
   "deno.enable": true,
+  "deno.unstable": true,
   "deno.config": "./src/deno.json",
   "deno.importMap": "./src/import_map.json",
   "[json]": {
