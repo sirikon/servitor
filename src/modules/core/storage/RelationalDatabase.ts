@@ -10,9 +10,8 @@ export class RelationalDatabase {
   }
 
   public getSqliteVersion() {
-    const [version] = this.db.prepare("select sqlite_version()").value<
-      [string]
-    >()!;
+    const [version] = this.db
+      .prepare("select sqlite_version()").value<[string]>()!;
     return version;
   }
 }
