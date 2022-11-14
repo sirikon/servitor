@@ -1,1 +1,7 @@
-{}
+{
+  "imports": {
+    "std/": "https://deno.land/std@0.164.0/",
+    "sqlite3/": "https://deno.land/x/sqlite3@0.6.1/",
+    "zod": "https://esm.sh/zod@3.19.1?pin=v98"
+  }
+}

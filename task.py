@@ -1,22 +1,24 @@
 #!/usr/bin/env python3
+import os
 
-DENO_ENTRY = 'src/main.ts'
+DENO_ENTRY = os.path.abspath('src/main.ts')
 DENO_EXEC_FLAGS = ['-A', '--unstable']
-DENO_CONFIG = ['--config', 'src/deno.json']
-DENO_IMPORT_MAP = ['--import-map', 'src/import_map.json']
-DENO_LOCK = ['--lock', 'src/lock.json']
+DENO_CONFIG = ['--config', os.path.abspath('src/deno.json')]
+DENO_IMPORT_MAP = ['--import-map', os.path.abspath('src/import_map.json')]
+DENO_LOCK = ['--lock', os.path.abspath('src/lock.json')]
 
 
 def cli():
 
     @command
     def run(*args):
+        cmd('mkdir', '-p', 'workdir')
         cmd('deno', 'run',
             *DENO_EXEC_FLAGS,
             *DENO_CONFIG,
             *DENO_IMPORT_MAP,
             *DENO_LOCK,
-            DENO_ENTRY, *args)
+            DENO_ENTRY, *args, cwd='workdir')
 
     @command
     def cache():
@@ -45,21 +47,18 @@ def cli():
 
     @command
     def devenv():
-        cmd('docker', 'compose',
-            '-p', 'servitor-devenv',
-            '--project-directory', '.',
-            '-f', './docker/docker-compose.yml',
-            'up', '-d')
+        compose('up', '-d')
 
     @command
     def devenv_sh():
-        cmd('docker', 'compose',
-            '-p', 'servitor-devenv',
-            '--project-directory', '.',
-            '-f', './docker/docker-compose.yml',
-            'exec', 'server', 'sh')
+        compose('exec', 'server', 'sh')
 
 
+def compose(*args):
+    cmd('docker', 'compose',
+        '-p', 'servitor-devenv',
+        '--project-directory', '.',
+        '-f', './docker/docker-compose.yml', *args)
 
 
 
