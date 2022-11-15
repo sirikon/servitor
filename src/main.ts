@@ -18,11 +18,11 @@ command.stdout.pipeTo(w);
 
 (async () => {
   await updateDone;
-  console.log("Update Done");
+  console.log("## Update Done");
   command.kill();
 })();
 
 (async () => {
   await command.status;
-  console.log("Follow Done");
+  console.log("## Follow Done");
 })();
