@@ -18,7 +18,15 @@ export class DockerDriver {
 
   public async build(opts: DockerBuildOpts) {
     const cmd = new Deno.Command("docker", {
-      args: ["build", "-t", opts.image, "-f", opts.dockerfile, "--pull", opts.context],
+      args: [
+        "build",
+        "-t",
+        opts.image,
+        "-f",
+        opts.dockerfile,
+        "--pull",
+        opts.context,
+      ],
       stdin: "null",
       stdout: "piped",
       stderr: "piped",

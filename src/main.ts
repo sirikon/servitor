@@ -22,7 +22,6 @@ const buildResult = await dockerDriver.build({
 });
 console.log("Build Result", buildResult);
 
-
 const stdout2 = new WritableStream<Uint8Array>({
   write(d) {
     Deno.stdout.write(d);
