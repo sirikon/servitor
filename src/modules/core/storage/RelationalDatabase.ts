@@ -6,7 +6,7 @@ export class RelationalDatabase {
   constructor(
     private databaseClazz: typeof Database,
   ) {
-    this.db = new this.databaseClazz("servitor.db");
+    this.db = new this.databaseClazz("data.db");
   }
 
   public getSqliteVersion() {

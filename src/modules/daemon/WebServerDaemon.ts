@@ -2,7 +2,7 @@ import { serve } from "std/http/server.ts";
 import {
   ConfigProvider,
   configProvider,
-} from "../core/config/ConfigProvider.ts";
+} from "@/core/config/ConfigProvider.ts";
 
 export class WebServerDaemon {
   constructor(
