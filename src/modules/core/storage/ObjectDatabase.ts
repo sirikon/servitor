@@ -19,10 +19,7 @@ export class ObjectDatabase {
       stderr: "piped",
     });
     command.spawn();
-    return {
-      done: command.status,
-      output: command.stdout,
-    };
+    return command;
   }
 }
 

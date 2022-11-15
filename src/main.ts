@@ -10,18 +10,19 @@ const w = new WritableStream<Uint8Array>({
 const { execution, done: updateDone } = await seedManager.update();
 console.log("Returned", execution);
 
-const { output, done: followDone } = objectDatabase.followSeedLog({
+const command = objectDatabase.followSeedLog({
   execution,
 });
 
-output.pipeTo(w);
+command.stdout.pipeTo(w);
 
 (async () => {
   await updateDone;
   console.log("Update Done");
+  command.kill();
 })();
 
 (async () => {
-  await followDone;
+  await command.status;
   console.log("Follow Done");
 })();
