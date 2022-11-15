@@ -10,6 +10,20 @@ export class ObjectDatabase {
       write: true,
     });
   }
+  public followSeedLog(opts: { execution: number }) {
+    const logPath = `seed-logs/${opts.execution}.txt`;
+    const command = new Deno.Command("tail", {
+      args: ["--follow=name", "--silent", "--lines=+0", logPath],
+      stdin: "null",
+      stdout: "piped",
+      stderr: "piped",
+    });
+    command.spawn();
+    return {
+      done: command.status,
+      output: command.stdout,
+    };
+  }
 }
 
 export const objectDatabase = new ObjectDatabase();
