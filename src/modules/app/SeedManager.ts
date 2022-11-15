@@ -13,6 +13,8 @@ import {
 } from "@/core/containers/DockerDriver.ts";
 
 export class SeedManager {
+  private textEncoder = new TextEncoder();
+
   constructor(
     private configProvider: ConfigProvider,
     private objectDatabase: ObjectDatabase,
@@ -31,7 +33,15 @@ export class SeedManager {
         } catch (e) {
           if (!(e instanceof Deno.errors.NotFound)) throw e;
         }
+
+        await log.write(
+          this.textEncoder.encode(`=== Cloning ${config.seed.repo}\n`),
+        );
         await this.runCommand("git", ["clone", config.seed.repo, "seed"], log);
+
+        await log.write(
+          this.textEncoder.encode(`\n=== Building docker image for secrets\n`),
+        );
         await this.buildDocker({
           image: `servitor-seed-${execution}`,
           context: "./seed/secrets",

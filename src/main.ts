@@ -10,7 +10,7 @@ const w = new WritableStream<Uint8Array>({
 const { execution, done: updateDone } = await seedManager.update();
 console.log("Returned", execution);
 
-const { output, done: followDone } = await objectDatabase.followSeedLog({
+const { output, done: followDone } = objectDatabase.followSeedLog({
   execution,
 });
 
