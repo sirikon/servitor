@@ -1,23 +1,49 @@
 import { dockerDriver } from "./modules/containers/DockerDriver.ts";
 
-const file = await Deno.open("log.txt", { create: true, write: true, truncate: true });
+const id = crypto.randomUUID();
 
-const w1 = new WritableStream<Uint8Array>({
+const stdout1 = new WritableStream<Uint8Array>({
   write(d) {
-    file.write(d);
+    Deno.stdout.write(d);
   },
 });
-const w2 = new WritableStream<Uint8Array>({
+const stderr1 = new WritableStream<Uint8Array>({
   write(d) {
-    file.write(d);
+    Deno.stdout.write(d);
   },
 });
 
-const result = await dockerDriver.run(
-  "ubuntu",
-  "apt-get update && apt-get install -y iputils-ping && ping -c 4 8.8.8.8",
-  w1,
-  w2,
-);
-file.close();
-console.log("Code", result);
+const buildResult = await dockerDriver.build({
+  image: "test-" + id,
+  context: "..",
+  dockerfile: "../example.dockerfile",
+  stdout: stdout1,
+  stderr: stderr1,
+});
+console.log("Build Result", buildResult);
+
+
+const stdout2 = new WritableStream<Uint8Array>({
+  write(d) {
+    Deno.stdout.write(d);
+  },
+});
+const stderr2 = new WritableStream<Uint8Array>({
+  write(d) {
+    Deno.stdout.write(d);
+  },
+});
+
+const runResult = await dockerDriver.run({
+  image: "test-" + id,
+  command: [
+    "ping",
+    "-c",
+    "4",
+    "8.8.8.8",
+  ],
+  stdout: stdout2,
+  stderr: stderr2,
+});
+
+console.log("Run Result", runResult);
