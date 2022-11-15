@@ -1,3 +1,4 @@
 import { seedManager } from "./modules/app/SeedManager.ts";
 
-await seedManager.update();
+const result = await seedManager.update();
+console.log("Returned", result);

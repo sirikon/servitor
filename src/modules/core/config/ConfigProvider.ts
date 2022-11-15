@@ -4,7 +4,7 @@ export class ConfigProvider {
   public getConfig(): Promise<Config> {
     return Promise.resolve({
       seed: {
-        repo: "https://github.com/sirikon/servitor.git",
+        repo: "https://github.com/srkbz/seed.git",
       },
       web: {
         host: "127.0.0.1",
