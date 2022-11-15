@@ -1,5 +1,5 @@
-import { seedManager } from "./modules/app/SeedManager.ts";
-import { objectDatabase } from "./modules/core/storage/ObjectDatabase.ts";
+import { seedManager } from "@/app/SeedManager.ts";
+import { objectDatabase } from "@/core/storage/ObjectDatabase.ts";
 
 const w = new WritableStream<Uint8Array>({
   write(d) {
