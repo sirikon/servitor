@@ -6,7 +6,11 @@ import {
   ConfigProvider,
   configProvider,
 } from "@/core/config/ConfigProvider.ts";
-import { DockerDriver, dockerDriver } from "@/core/containers/DockerDriver.ts";
+import {
+  DockerBuildOpts,
+  DockerDriver,
+  dockerDriver,
+} from "@/core/containers/DockerDriver.ts";
 
 export class SeedManager {
   constructor(
@@ -28,15 +32,11 @@ export class SeedManager {
           if (!(e instanceof Deno.errors.NotFound)) throw e;
         }
         await this.runCommand("git", ["clone", config.seed.repo, "seed"], log);
-
-        const { stdout, stderr } = this.buildWritableOutputs(log);
-        await this.dockerDriver.build({
+        await this.buildDocker({
           image: `servitor-seed-${execution}`,
           context: "./seed/secrets",
           dockerfile: "./seed/secrets/Dockerfile",
-          stdout,
-          stderr,
-        });
+        }, log);
       } finally {
         log.close();
       }
@@ -59,6 +59,23 @@ export class SeedManager {
       cmd.stderr.pipeTo(stderr),
     ]);
     return await cmd.status;
+  }
+
+  private async buildDocker(
+    { image, context, dockerfile }: Pick<
+      DockerBuildOpts,
+      "image" | "dockerfile" | "context"
+    >,
+    log: Deno.FsFile,
+  ) {
+    const { stdout, stderr } = this.buildWritableOutputs(log);
+    await this.dockerDriver.build({
+      image,
+      context,
+      dockerfile,
+      stdout,
+      stderr,
+    });
   }
 
   private buildWritableOutputs(log: Deno.FsFile) {
