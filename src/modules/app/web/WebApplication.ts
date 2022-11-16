@@ -14,16 +14,6 @@ export class WebApplication {
   }
 
   private configure() {
-    this.router.get("/seed-logs/:execution", async (ctx) => {
-      const seedLog = await this.objectDatabase.followSeedLog({
-        execution: parseInt(ctx.params.execution),
-      });
-      await ctx.request.originalRequest.respond(
-        new Response(seedLog.output, { status: 200 }),
-      );
-      seedLog.stop();
-    });
-
     this.oak.use(this.router.routes());
     this.oak.use(this.router.allowedMethods());
   }
