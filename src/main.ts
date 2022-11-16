@@ -1,21 +1,9 @@
 import { seedManager } from "@/app/SeedManager.ts";
-import { objectDatabase } from "@/core/storage/ObjectDatabase.ts";
+// import { objectDatabase } from "@/core/storage/ObjectDatabase.ts";
 
-const w = new WritableStream<Uint8Array>({
-  write(d) {
-    Deno.stdout.write(d);
-  },
-});
+import { webServerDaemon } from "@/daemon/WebServerDaemon.ts";
 
 const { execution } = await seedManager.update();
-console.log("Returned", execution);
-// const execution = 1668620216687;
+console.log("http://localhost:40000/seed-logs/" + execution);
 
-const { output, stop } = await objectDatabase
-  .followSeedLog({
-    execution,
-  });
-
-await output.pipeTo(w);
-console.log("DONE");
-stop();
+await webServerDaemon.start();

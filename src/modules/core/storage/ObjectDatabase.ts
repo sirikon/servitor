@@ -1,6 +1,6 @@
 import { dirname } from "std/path/win32.ts";
 import { ensureDir } from "std/fs/ensure_dir.ts";
-import { GlobalState, globalState } from "../state/GlobalState.ts";
+import { GlobalState, globalState } from "@/core/state/GlobalState.ts";
 
 export type FollowSeedLogResult = {
   output: ReadableStream<Uint8Array>;
@@ -32,7 +32,11 @@ export class ObjectDatabase {
       return {
         output: file.readable,
         stop: () => {
-          file.close();
+          try {
+            file.close();
+          } catch (e) {
+            if (!(e instanceof Deno.errors.BadResource)) throw e;
+          }
         },
       };
     }
