@@ -1,7 +1,6 @@
 import { dirname } from "std/path/win32.ts";
 import { ensureDir } from "std/fs/ensure_dir.ts";
 import { GlobalState, globalState } from "../state/GlobalState.ts";
-import { copy } from "std/streams/conversion.ts";
 
 export type FollowSeedLogResult = {
   output: ReadableStream<Uint8Array>;
