@@ -7,23 +7,15 @@ const w = new WritableStream<Uint8Array>({
   },
 });
 
-const { execution, done: updateDone } = await seedManager.update();
+const { execution } = await seedManager.update();
 console.log("Returned", execution);
+// const execution = 1668620216687;
 
-const { output, done: followDone, stop: stopFollow } = objectDatabase
+const { output, stop } = await objectDatabase
   .followSeedLog({
     execution,
   });
 
-output.pipeTo(w);
-
-(async () => {
-  await updateDone;
-  console.log("## Update Done");
-  stopFollow();
-})();
-
-(async () => {
-  await followDone;
-  console.log("## Follow Done");
-})();
+await output.pipeTo(w);
+console.log("DONE");
+stop();

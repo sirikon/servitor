@@ -11,11 +11,13 @@ import {
   DockerDriver,
   dockerDriver,
 } from "@/core/containers/DockerDriver.ts";
+import { GlobalState, globalState } from "../core/state/GlobalState.ts";
 
 export class SeedManager {
   private textEncoder = new TextEncoder();
 
   constructor(
+    private globalState: GlobalState,
     private configProvider: ConfigProvider,
     private objectDatabase: ObjectDatabase,
     private dockerDriver: DockerDriver,
@@ -28,6 +30,11 @@ export class SeedManager {
 
     const done = (async () => {
       try {
+        this.globalState.setSeedExecutionRunningState({
+          execution,
+          running: true,
+        });
+
         try {
           await Deno.remove("./seed", { recursive: true });
         } catch (e) {
@@ -49,6 +56,10 @@ export class SeedManager {
         }, log);
       } finally {
         log.close();
+        this.globalState.setSeedExecutionRunningState({
+          execution,
+          running: false,
+        });
       }
     })();
 
@@ -104,6 +115,7 @@ export class SeedManager {
 }
 
 export const seedManager = new SeedManager(
+  globalState,
   configProvider,
   objectDatabase,
   dockerDriver,
