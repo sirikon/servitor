@@ -3,17 +3,28 @@ import {
   ObjectDatabase,
   objectDatabase,
 } from "@/core/storage/ObjectDatabase.ts";
+import {
+  ConfigProvider,
+  configProvider,
+} from "../../core/config/ConfigProvider.ts";
 
 export class WebApplication {
   constructor(
     private oak: Application,
     private router: Router,
     private objectDatabase: ObjectDatabase,
+    private configProvider: ConfigProvider,
   ) {
-    this.configure();
+    this.configureOak();
   }
 
-  private configure() {
+  private configureOak() {
+    this.router.get("/(.*)", async (ctx) => {
+      const config = await this.configProvider.getConfig();
+      const path = ctx.request.url.pathname === "/" ? "index.html" : undefined;
+      await ctx.send({ root: config.web.staticRoot, path });
+    });
+
     this.oak.use(this.router.routes());
     this.oak.use(this.router.allowedMethods());
   }
@@ -48,4 +59,5 @@ export const webApplication = new WebApplication(
   new Application(),
   new Router(),
   objectDatabase,
+  configProvider,
 );

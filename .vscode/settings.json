@@ -17,5 +17,11 @@
   "[python]": {
     "editor.defaultFormatter": "ms-python.python",
     "editor.tabSize": 4
+  },
+  "[html]": {
+    "files.insertFinalNewline": true
+  },
+  "[css]": {
+    "files.insertFinalNewline": true
   }
 }

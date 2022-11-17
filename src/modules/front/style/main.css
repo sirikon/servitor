@@ -1,0 +1,21 @@
+html,
+body {
+  font-family: monospace
+}
+
+body>header,
+body>main,
+body>footer {
+  max-width: 1000px;
+  margin: auto;
+  box-sizing: border-box;
+}
+
+body>main {
+  background-color: whitesmoke;
+  padding: 1px 1em;
+}
+
+body>footer {
+  text-align: right;
+}
