@@ -12,7 +12,7 @@ export default () => {
       <footer>
         <p>
           <span>servitor v0.0.0</span>
-          <span>|</span>
+          <span> | </span>
           <a href="https://github.com/sirikon/servitor" target="_blank">
             sources
           </a>
