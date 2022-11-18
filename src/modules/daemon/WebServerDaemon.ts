@@ -17,6 +17,7 @@ export class WebServerDaemon {
       hostname: config.web.host,
       port: config.web.port,
     });
+    console.log(`http://127.0.0.1:${config.web.port}`);
 
     for await (const conn of listener) {
       (async () => {
