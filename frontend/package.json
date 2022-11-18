@@ -1,0 +1,20 @@
+{
+  "scripts": {
+    "postinstall": "teseract gen"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "teseract": "^2.13.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.25",
+    "@types/react-dom": "^18.0.9"
+  },
+  "teseract": {
+    "serve": {
+      "host": "127.0.0.1",
+      "port": 40001
+    }
+  }
+}

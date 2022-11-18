@@ -3,19 +3,19 @@ body {
   font-family: monospace
 }
 
-body>header,
-body>main,
-body>footer {
+#app>header,
+#app>main,
+#app>footer {
   max-width: 1000px;
   margin: auto;
   box-sizing: border-box;
 }
 
-body>main {
+#app>main {
   background-color: whitesmoke;
   padding: 1px 1em;
 }
 
-body>footer {
+#app>footer {
   text-align: right;
 }

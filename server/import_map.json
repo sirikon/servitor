@@ -1,6 +1,6 @@
 {
   "imports": {
-    "@/": "./modules/",
+    "@/": "./src/modules/",
     "std/": "https://deno.land/std@0.164.0/",
     "sqlite3/": "https://deno.land/x/sqlite3@0.6.1/",
     "oak/": "https://deno.land/x/oak@v11.1.0/",

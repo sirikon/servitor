@@ -1,49 +1,59 @@
 #!/usr/bin/env python3
 import os
 
-DENO_ENTRY = os.path.abspath('src/main.ts')
-DENO_EXEC_FLAGS = ['-A', '--unstable']
-DENO_CONFIG = ['--config', os.path.abspath('src/deno.json')]
-DENO_IMPORT_MAP = ['--import-map', os.path.abspath('src/import_map.json')]
-DENO_LOCK = ['--lock', os.path.abspath('src/lock.json')]
+SERVER_DENO_ENTRY = os.path.abspath('server/src/main.ts')
+SERVER_DENO_EXEC_FLAGS = ['-A', '--unstable']
+SERVERDENO_CONFIG = ['--config', os.path.abspath('server/deno.json')]
+SERVER_DENO_IMPORT_MAP = [
+    '--import-map',
+    os.path.abspath('server/import_map.json')]
+SERVER_DENO_LOCK = ['--lock', os.path.abspath('server/lock.json')]
 
 
 def cli():
 
     @command
-    def run(*args):
+    def fe_start():
+        if not os.path.isdir('frontend/node_modules'):
+            cmd('npm', 'i', cwd='frontend')
+        cmd('npm', 'exec', 'teseract', 'serve', cwd='frontend')
+
+    @command
+    def sv_start(*args):
         cmd('mkdir', '-p', 'workdir')
         cmd('deno', 'run',
-            *DENO_EXEC_FLAGS,
-            *DENO_CONFIG,
-            *DENO_IMPORT_MAP,
-            *DENO_LOCK,
-            DENO_ENTRY, *args, cwd='workdir')
+            *SERVER_DENO_EXEC_FLAGS,
+            *SERVERDENO_CONFIG,
+            *SERVER_DENO_IMPORT_MAP,
+            *SERVER_DENO_LOCK,
+            SERVER_DENO_ENTRY, *args, cwd='workdir')
 
     @command
-    def cache():
+    def sv_cache():
         cmd('deno', 'cache',
-            *DENO_CONFIG,
-            *DENO_IMPORT_MAP,
-            *DENO_LOCK,
-            DENO_ENTRY)
+            *SERVERDENO_CONFIG,
+            *SERVER_DENO_IMPORT_MAP,
+            *SERVER_DENO_LOCK,
+            SERVER_DENO_ENTRY)
 
     @command
-    def lock():
+    def sv_lock():
         cmd('deno', 'cache',
-            *DENO_CONFIG,
-            *DENO_IMPORT_MAP,
-            *DENO_LOCK,
+            *SERVERDENO_CONFIG,
+            *SERVER_DENO_IMPORT_MAP,
+            *SERVER_DENO_LOCK,
             '--lock-write',
-            DENO_ENTRY)
+            SERVER_DENO_ENTRY)
 
     @command
     def fmt():
-        cmd('deno', 'fmt', *DENO_CONFIG, 'src')
+        cmd('deno', 'fmt', *SERVERDENO_CONFIG, 'server/src')
+        cmd('npm', 'exec', 'teseract', 'lint', '--fix', cwd='frontend')
 
     @command
     def lint():
-        cmd('deno', 'lint', *DENO_CONFIG, 'src')
+        cmd('deno', 'lint', *SERVERDENO_CONFIG, 'server/src')
+        cmd('npm', 'exec', 'teseract', 'lint', cwd='frontend')
 
     @command
     def devenv():
