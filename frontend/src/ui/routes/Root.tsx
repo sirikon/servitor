@@ -1,13 +1,20 @@
 import React from "react";
+import { Link, NavLink, Outlet } from "react-router-dom";
 
 export default () => {
   return (
     <>
       <header>
-        <h1>servitor</h1>
+        <h1>
+          <Link to={"/"}>servitor</Link>
+        </h1>
+        <p>
+          <NavLink to={"/"}>jobs</NavLink>
+          <NavLink to={"/seed"}>seed</NavLink>
+        </p>
       </header>
       <main>
-        <p>Hello there</p>
+        <Outlet />
       </main>
       <footer>
         <p>
