@@ -1,6 +1,6 @@
 import { Application, Router } from "oak/mod.ts";
 import { seedSystem } from "@/app/systems/SeedSystem.ts";
-import { LogStorage, logStorage } from "../../core/storage/LogStorage.ts";
+import { LogStorage, logStorage } from "@/core/storage/LogStorage.ts";
 
 export class WebApplication {
   constructor(

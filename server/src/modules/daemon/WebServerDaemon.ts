@@ -2,7 +2,7 @@ import {
   ConfigProvider,
   configProvider,
 } from "@/core/config/ConfigProvider.ts";
-import { WebApplication, webApplication } from "../app/web/WebApplication.ts";
+import { WebApplication, webApplication } from "@/app/web/WebApplication.ts";
 
 export class WebServerDaemon {
   constructor(
