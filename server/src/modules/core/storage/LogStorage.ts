@@ -73,11 +73,9 @@ export class LogStorage {
         stderr: "null",
       });
       command.spawn();
-      console.log("Starting tail to ", logPath);
       return {
         readable: command.stdout,
         stop: () => {
-          console.log("Stopping tail to ", logPath);
           try {
             command.kill();
           } catch (_) { /**/ }

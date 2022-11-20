@@ -32,14 +32,14 @@ export class WebServerDaemon {
 
             try {
               response && await respondWith(response);
-            } catch (e) {
-              if (!isConnectionClosedError(e)) {
-                console.log(e);
+            } catch (err) {
+              if (!isConnectionClosedError(err)) {
+                console.log(err);
               }
             }
           }
-        } catch (e) {
-          console.log(e);
+        } catch (err) {
+          console.log(err);
         }
       })();
     }

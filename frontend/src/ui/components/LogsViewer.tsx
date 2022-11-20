@@ -4,7 +4,6 @@ export const LogsViewer = ({ url }: { url: string }) => {
   const [logs, setLogs] = useState("");
 
   useEffect(() => {
-    console.log("New url", url);
     setLogs("");
     const abortController = new AbortController();
     const textDecoder = new TextDecoderStream();
@@ -16,7 +15,6 @@ export const LogsViewer = ({ url }: { url: string }) => {
           if (done) break;
           setLogs((l) => l + value);
         }
-        console.log("Done!");
       })
       .catch((err) => {
         if (
