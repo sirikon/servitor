@@ -25,24 +25,23 @@ export class WebApplication {
   public async handle(
     request: Request,
     conn: Deno.Conn,
-  ): Promise<{ response: Response | undefined }> {
+  ): Promise<Response> {
     const seedLogData = new URL(request.url).pathname.match(
       /^\/api\/seed\/([0-9]+)\/logs$/,
     );
     if (seedLogData) {
       const execution = parseInt(seedLogData[1]);
       const seedLog = await this.logStorage.readSeedLog({ execution });
-      return {
-        response: new Response(seedLog, {
-          headers: {
-            "access-control-allow-origin": "*",
-            "content-type": "application/octet-stream",
-            "x-content-type-options": "nosniff",
-          },
-        }),
-      };
+      return new Response(seedLog, {
+        headers: {
+          "access-control-allow-origin": "*",
+          "content-type": "application/octet-stream",
+          "x-content-type-options": "nosniff",
+        },
+      });
     }
-    return { response: await this.oak.handle(request, conn) };
+    return (await this.oak.handle(request, conn) ||
+      new Response(null, { status: 404 }));
   }
 }
 

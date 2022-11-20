@@ -21,33 +21,25 @@ export class WebServerDaemon {
 
     for await (const conn of listener) {
       (async () => {
-        console.log("=== Conn", conn.rid);
         try {
           const requests = Deno.serveHttp(conn);
           for await (const { request, respondWith } of requests) {
-            console.log("=== Request", request.url, request.method);
+            const response = this.webApplication.handle(request, conn)
+              .catch((err) => {
+                console.log(err);
+                return new Response(null, { status: 500 });
+              });
+
             try {
-              const { response } = await this.webApplication.handle(
-                request,
-                conn,
-              );
-              if (response) {
-                await respondWith(response);
-              }
+              await respondWith(response);
             } catch (e) {
-              if (
-                e instanceof Deno.errors.Http &&
-                e.message === "connection closed before message completed"
-              ) {
-                console.log("=== Connection closed", conn.rid);
-                return;
+              if (!isConnectionClosedError(e)) {
+                console.log(e);
               }
-              await respondWith(new Response(null, { status: 500 }));
             }
           }
         } catch (e) {
           console.log(e);
-          conn.close();
         }
       })();
     }
@@ -58,3 +50,8 @@ export const webServerDaemon = new WebServerDaemon(
   configProvider,
   webApplication,
 );
+
+const isConnectionClosedError = (e: unknown) => {
+  return e instanceof Deno.errors.Http &&
+    e.message === "connection closed before message completed";
+};
