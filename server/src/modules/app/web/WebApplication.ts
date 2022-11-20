@@ -12,12 +12,18 @@ export class WebApplication {
   }
 
   private configureOak() {
-    this.router.post("/api/seed/execute", async (ctx) => {
-      const { execution } = await seedSystem.execute();
-      ctx.response.headers.set("access-control-allow-origin", "*");
-      ctx.response.body = { execution };
+    this.router.get("/api/debug/resources", (ctx) => {
+      ctx.response.body = Deno.resources();
     });
 
+    this.router.post("/api/seed/execute", async (ctx) => {
+      ctx.response.body = await seedSystem.execute();
+    });
+
+    this.oak.use(async (ctx, next) => {
+      ctx.response.headers.set("access-control-allow-origin", "*");
+      await next();
+    });
     this.oak.use(this.router.routes());
     this.oak.use(this.router.allowedMethods());
   }
@@ -25,13 +31,13 @@ export class WebApplication {
   public async handle(
     request: Request,
     conn: Deno.Conn,
-  ): Promise<Response> {
+  ): Promise<Response | undefined> {
     const seedLogData = new URL(request.url).pathname.match(
-      /^\/api\/seed\/([0-9]+)\/logs$/,
+      /^\/api\/seed\/executions\/([0-9]+)\/logs$/,
     );
     if (seedLogData) {
-      const execution = parseInt(seedLogData[1]);
-      const seedLog = await this.logStorage.readSeedLog({ execution });
+      const id = parseInt(seedLogData[1]);
+      const seedLog = await this.logStorage.readSeedLog({ id });
       return new Response(seedLog, {
         headers: {
           "access-control-allow-origin": "*",
@@ -40,8 +46,7 @@ export class WebApplication {
         },
       });
     }
-    return (await this.oak.handle(request, conn) ||
-      new Response(null, { status: 404 }));
+    return await this.oak.handle(request, conn);
   }
 }
 

@@ -1,8 +1,8 @@
 import EventEmitter from "eventemitter3";
 
 export type EventTypes = {
-  "seed-execution-started": (args: { execution: number }) => void;
-  "seed-execution-ended": (args: { execution: number }) => void;
+  "seed-execution-started": (args: { id: number }) => void;
+  "seed-execution-ended": (args: { id: number }) => void;
 };
 
 export class GlobalState {
@@ -13,21 +13,21 @@ export class GlobalState {
   ) {}
 
   public setSeedExecutionRunningState(
-    opts: { execution: number; running: boolean },
+    opts: { id: number; running: boolean },
   ) {
     opts.running
-      ? this.runningSeedExecutions.add(opts.execution)
-      : this.runningSeedExecutions.delete(opts.execution);
+      ? this.runningSeedExecutions.add(opts.id)
+      : this.runningSeedExecutions.delete(opts.id);
     this.eventEmitter.emit(
       opts.running ? "seed-execution-started" : "seed-execution-ended",
       {
-        execution: opts.execution,
+        id: opts.id,
       },
     );
   }
 
-  public isSeedExecutionRunning(opts: { execution: number }) {
-    return this.runningSeedExecutions.has(opts.execution);
+  public isSeedExecutionRunning(opts: { id: number }) {
+    return this.runningSeedExecutions.has(opts.id);
   }
 }
 

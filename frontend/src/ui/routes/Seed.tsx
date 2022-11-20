@@ -1,16 +1,19 @@
 import React, { useCallback, useState } from "react";
 import { servitorApi } from "../../services/ServitorApi";
-import { SeedLogs } from "../components/SeedLogs";
+import { LogsViewer } from "../components/LogsViewer";
 
 export default () => {
-  const [seedExecution, setSeedExecution] = useState<number | null>(null);
+  const [execution, setExecution] = useState<{
+    id: number;
+    logsUrl: string;
+  } | null>(null);
 
   const onClick = useCallback(() => {
     (async () => {
-      const { execution } = await servitorApi.executeSeed();
-      setSeedExecution(execution);
+      setExecution(null);
+      setExecution(await servitorApi.executeSeed());
     })();
-  }, [setSeedExecution]);
+  }, [setExecution]);
 
   return (
     <>
@@ -19,8 +22,8 @@ export default () => {
           Execute
         </button>
       </p>
-      <p>{seedExecution || ""}</p>
-      {seedExecution && <SeedLogs execution={seedExecution} />}
+      <p>{execution?.id || ""}</p>
+      {execution && <LogsViewer url={execution.logsUrl} />}
     </>
   );
 };

@@ -24,14 +24,14 @@ export class WebServerDaemon {
         try {
           const requests = Deno.serveHttp(conn);
           for await (const { request, respondWith } of requests) {
-            const response = this.webApplication.handle(request, conn)
+            const response = await this.webApplication.handle(request, conn)
               .catch((err) => {
                 console.log(err);
                 return new Response(null, { status: 500 });
               });
 
             try {
-              await respondWith(response);
+              response && await respondWith(response);
             } catch (e) {
               if (!isConnectionClosedError(e)) {
                 console.log(e);

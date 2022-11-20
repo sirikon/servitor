@@ -21,15 +21,15 @@ export class SeedSystem {
   ) {}
 
   public async execute() {
-    const execution = Date.now();
+    const id = Date.now();
     const config = await this.configProvider.getConfig();
-    const log = await this.logStorage.createSeedLog({ execution });
+    const log = await this.logStorage.createSeedLog({ id });
     const logWriter = log.getWriter();
 
     const done = (async () => {
       try {
         this.globalState.setSeedExecutionRunningState({
-          execution,
+          id,
           running: true,
         });
 
@@ -52,20 +52,20 @@ export class SeedSystem {
           this.textEncoder.encode(`\n=== Building docker image for secrets\n`),
         );
         await this.buildDocker({
-          image: `servitor-seed-${execution}`,
+          image: `servitor-seed-${id}`,
           context: "./seed/secrets",
           dockerfile: "./seed/secrets/Dockerfile",
         }, logWriter);
       } finally {
         this.globalState.setSeedExecutionRunningState({
-          execution,
+          id,
           running: false,
         });
         await logWriter.close();
       }
     })();
 
-    return { execution, done };
+    return { id, done };
   }
 
   private async runCommand(

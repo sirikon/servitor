@@ -3,7 +3,7 @@ import { ensureDir } from "std/fs/ensure_dir.ts";
 import { GlobalState, globalState } from "@/core/state/GlobalState.ts";
 
 type SeedLogIdentifier = {
-  execution: number;
+  id: number;
 };
 
 type LogIdentifier = {
@@ -19,7 +19,7 @@ export class LogStorage {
   public async createSeedLog(opts: SeedLogIdentifier) {
     return await this.createLog({
       category: ["seed"],
-      name: opts.execution.toString(),
+      name: opts.id.toString(),
     });
   }
 
@@ -27,16 +27,19 @@ export class LogStorage {
     const isRunning = this.globalState.isSeedExecutionRunning(opts);
     const { readable, stop } = await this.readLog({
       category: ["seed"],
-      name: opts.execution.toString(),
+      name: opts.id.toString(),
       mode: isRunning ? "stream" : "read-full",
     });
 
-    isRunning && this.globalState.eventEmitter.once(
-      "seed-execution-ended",
-      (event: { execution: number }) => {
-        event.execution === opts.execution && stop();
-      },
-    );
+    isRunning && (() => {
+      const handler = (event: { id: number }) => {
+        if (event.id === opts.id) {
+          stop();
+          this.globalState.eventEmitter.off("seed-execution-ended", handler);
+        }
+      };
+      this.globalState.eventEmitter.on("seed-execution-ended", handler);
+    })();
 
     return readable;
   }
@@ -70,9 +73,11 @@ export class LogStorage {
         stderr: "null",
       });
       command.spawn();
+      console.log("Starting tail to ", logPath);
       return {
         readable: command.stdout,
         stop: () => {
+          console.log("Stopping tail to ", logPath);
           try {
             command.kill();
           } catch (_) { /**/ }
