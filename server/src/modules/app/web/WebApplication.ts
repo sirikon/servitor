@@ -41,7 +41,7 @@ export class WebApplication {
       return new Response(seedLog, {
         headers: {
           "access-control-allow-origin": "*",
-          "content-type": "application/octet-stream",
+          "content-type": "text/plain",
           "x-content-type-options": "nosniff",
         },
       });

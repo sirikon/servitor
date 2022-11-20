@@ -66,21 +66,37 @@ export class LogStorage {
         stop: () => {},
       };
     } else {
-      const command = new Deno.Command("tail", {
-        args: ["--follow=name", "--silent", "--lines=+0", logPath],
-        stdin: "null",
-        stdout: "piped",
-        stderr: "null",
-      });
-      command.spawn();
-      return {
-        readable: command.stdout,
-        stop: () => {
-          try {
-            command.kill();
-          } catch (_) { /**/ }
+      let stopper = () => {};
+      const readable = new ReadableStream<Uint8Array>({
+        async start(controller) {
+          const file = await Deno.open(logPath, { read: true });
+          const watcher = Deno.watchFs(logPath);
+          const buffer = new Uint8Array(1024);
+
+          const pump = async () => {
+            while (true) {
+              const bytes = await file.read(buffer);
+              if (bytes == null) break;
+              controller.enqueue(buffer.slice(0, bytes));
+            }
+          };
+
+          stopper = async () => {
+            await pump();
+            watcher.close();
+            file.close();
+            controller.close();
+          };
+
+          await pump();
+          for await (const e of watcher) {
+            if (e.kind !== "modify") continue;
+            await pump();
+          }
         },
-      };
+      });
+
+      return { readable, stop: () => stopper() };
     }
   }
 
