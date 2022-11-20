@@ -11,9 +11,9 @@ import {
   DockerDriver,
   dockerDriver,
 } from "@/core/containers/DockerDriver.ts";
-import { GlobalState, globalState } from "../core/state/GlobalState.ts";
+import { GlobalState, globalState } from "@/core/state/GlobalState.ts";
 
-export class SeedManager {
+export class SeedSystem {
   private textEncoder = new TextEncoder();
 
   constructor(
@@ -23,7 +23,7 @@ export class SeedManager {
     private dockerDriver: DockerDriver,
   ) {}
 
-  public async update() {
+  public async execute() {
     const execution = Date.now();
     const config = await this.configProvider.getConfig();
     const log = await this.objectDatabase.createSeedLog({ execution });
@@ -114,7 +114,7 @@ export class SeedManager {
   }
 }
 
-export const seedManager = new SeedManager(
+export const seedSystem = new SeedSystem(
   globalState,
   configProvider,
   objectDatabase,
