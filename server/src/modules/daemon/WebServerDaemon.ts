@@ -25,16 +25,12 @@ export class WebServerDaemon {
           const requests = Deno.serveHttp(conn);
           for await (const { request, respondWith } of requests) {
             try {
-              const { response, done } = await this.webApplication.handle(
+              const { response } = await this.webApplication.handle(
                 request,
                 conn,
               );
-              try {
-                if (response) {
-                  await respondWith(response);
-                }
-              } finally {
-                done();
+              if (response) {
+                await respondWith(response);
               }
             } catch (e) {
               if (

@@ -1,20 +1,38 @@
-import { dirname } from "std/path/win32.ts";
+import { dirname, join } from "std/path/mod.ts";
 import { ensureDir } from "std/fs/ensure_dir.ts";
 import { GlobalState, globalState } from "@/core/state/GlobalState.ts";
 
 export type FollowSeedLogResult = {
   output: ReadableStream<Uint8Array>;
-  stop: () => void;
 };
 
-export class ObjectDatabase {
+export type LogIdentifier = {
+  category: string[];
+  name: string;
+};
+
+export class LogStorage {
   constructor(
     private globalState: GlobalState,
   ) {}
 
+  public async createLog(id: LogIdentifier) {
+    const logPath = this.buildLogPath(id);
+    await ensureDir(dirname(logPath));
+    const file = await Deno.open(logPath, {
+      createNew: true,
+      write: true,
+    });
+    return file.writable;
+  }
+
+  private buildLogPath(id: LogIdentifier) {
+    return join("logs", ...id.category, `${id.name}.txt`);
+  }
+
   public async createSeedLog(opts: { execution: number }) {
     const logPath = `seed-logs/${opts.execution}.txt`;
-    await ensureDir(dirname(logPath));
+
     return await Deno.open(logPath, {
       createNew: true,
       write: true,
@@ -31,13 +49,6 @@ export class ObjectDatabase {
       const file = await Deno.open(logPath, { read: true });
       return {
         output: file.readable,
-        stop: () => {
-          try {
-            file.close();
-          } catch (e) {
-            if (!(e instanceof Deno.errors.BadResource)) throw e;
-          }
-        },
       };
     }
 
@@ -49,11 +60,9 @@ export class ObjectDatabase {
     });
     command.spawn();
 
-    const stop = () => command.kill();
-
     (async () => {
       const handler = (event: { execution: number }) => {
-        event.execution === opts.execution && stop();
+        event.execution === opts.execution && command.kill();
       };
       this.globalState.eventEmitter.on("seed-execution-ended", handler);
       await command.status;
@@ -62,9 +71,8 @@ export class ObjectDatabase {
 
     return {
       output: command.stdout,
-      stop,
     };
   }
 }
 
-export const objectDatabase = new ObjectDatabase(globalState);
+export const objectDatabase = new LogStorage(globalState);

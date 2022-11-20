@@ -28,7 +28,7 @@ export class WebApplication {
   public async handle(
     request: Request,
     conn: Deno.Conn,
-  ): Promise<{ response: Response | undefined; done: () => void }> {
+  ): Promise<{ response: Response | undefined }> {
     const seedLogData = new URL(request.url).pathname.match(
       /^\/api\/seed\/([0-9]+)\/logs$/,
     );
@@ -43,12 +43,9 @@ export class WebApplication {
             "x-content-type-options": "nosniff",
           },
         }),
-        done: () => {
-          seedLog.stop();
-        },
       };
     }
-    return { response: await this.oak.handle(request, conn), done: () => {} };
+    return { response: await this.oak.handle(request, conn) };
   }
 }
 
