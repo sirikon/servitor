@@ -82,10 +82,18 @@ export class LogStorage {
           };
 
           stopper = async () => {
-            await pump();
-            watcher.close();
-            file.close();
-            controller.close();
+            try {
+              await pump();
+            } catch (_) { /**/ }
+            try {
+              watcher.close();
+            } catch (_) { /**/ }
+            try {
+              file.close();
+            } catch (_) { /**/ }
+            try {
+              controller.close();
+            } catch (_) { /**/ }
           };
 
           await pump();
