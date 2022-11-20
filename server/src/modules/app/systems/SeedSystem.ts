@@ -1,8 +1,4 @@
 import {
-  ObjectDatabase,
-  objectDatabase,
-} from "@/core/storage/ObjectDatabase.ts";
-import {
   ConfigProvider,
   configProvider,
 } from "@/core/config/ConfigProvider.ts";
@@ -12,6 +8,7 @@ import {
   dockerDriver,
 } from "@/core/containers/DockerDriver.ts";
 import { GlobalState, globalState } from "@/core/state/GlobalState.ts";
+import { LogStorage, logStorage } from "@/core/storage/LogStorage.ts";
 
 export class SeedSystem {
   private textEncoder = new TextEncoder();
@@ -19,14 +16,15 @@ export class SeedSystem {
   constructor(
     private globalState: GlobalState,
     private configProvider: ConfigProvider,
-    private objectDatabase: ObjectDatabase,
+    private logStorage: LogStorage,
     private dockerDriver: DockerDriver,
   ) {}
 
   public async execute() {
     const execution = Date.now();
     const config = await this.configProvider.getConfig();
-    const log = await this.objectDatabase.createSeedLog({ execution });
+    const log = await this.logStorage.createSeedLog({ execution });
+    const logWriter = log.getWriter();
 
     const done = (async () => {
       try {
@@ -41,32 +39,40 @@ export class SeedSystem {
           if (!(e instanceof Deno.errors.NotFound)) throw e;
         }
 
-        await log.write(
+        await logWriter.write(
           this.textEncoder.encode(`=== Cloning ${config.seed.repo}\n`),
         );
-        await this.runCommand("git", ["clone", config.seed.repo, "seed"], log);
+        await this.runCommand(
+          "git",
+          ["clone", config.seed.repo, "seed"],
+          logWriter,
+        );
 
-        await log.write(
+        await logWriter.write(
           this.textEncoder.encode(`\n=== Building docker image for secrets\n`),
         );
         await this.buildDocker({
           image: `servitor-seed-${execution}`,
           context: "./seed/secrets",
           dockerfile: "./seed/secrets/Dockerfile",
-        }, log);
+        }, logWriter);
       } finally {
-        log.close();
         this.globalState.setSeedExecutionRunningState({
           execution,
           running: false,
         });
+        await logWriter.close();
       }
     })();
 
     return { execution, done };
   }
 
-  private async runCommand(command: string, args: string[], log: Deno.FsFile) {
+  private async runCommand(
+    command: string,
+    args: string[],
+    log: WritableStreamDefaultWriter<Uint8Array>,
+  ) {
     const { stdout, stderr } = this.buildWritableOutputs(log);
     const cmd = new Deno.Command(command, {
       args,
@@ -87,7 +93,7 @@ export class SeedSystem {
       DockerBuildOpts,
       "image" | "dockerfile" | "context"
     >,
-    log: Deno.FsFile,
+    log: WritableStreamDefaultWriter<Uint8Array>,
   ) {
     const { stdout, stderr } = this.buildWritableOutputs(log);
     await this.dockerDriver.build({
@@ -99,7 +105,7 @@ export class SeedSystem {
     });
   }
 
-  private buildWritableOutputs(log: Deno.FsFile) {
+  private buildWritableOutputs(log: WritableStreamDefaultWriter<Uint8Array>) {
     const stdout = new WritableStream<Uint8Array>({
       write(d) {
         log.write(d);
@@ -117,6 +123,6 @@ export class SeedSystem {
 export const seedSystem = new SeedSystem(
   globalState,
   configProvider,
-  objectDatabase,
+  logStorage,
   dockerDriver,
 );

@@ -21,9 +21,11 @@ export class WebServerDaemon {
 
     for await (const conn of listener) {
       (async () => {
+        console.log("=== Conn", conn.rid);
         try {
           const requests = Deno.serveHttp(conn);
           for await (const { request, respondWith } of requests) {
+            console.log("=== Request", request.url, request.method);
             try {
               const { response } = await this.webApplication.handle(
                 request,
@@ -36,12 +38,16 @@ export class WebServerDaemon {
               if (
                 e instanceof Deno.errors.Http &&
                 e.message === "connection closed before message completed"
-              ) return;
+              ) {
+                console.log("=== Connection closed", conn.rid);
+                return;
+              }
               await respondWith(new Response(null, { status: 500 }));
             }
           }
         } catch (e) {
           console.log(e);
+          conn.close();
         }
       })();
     }

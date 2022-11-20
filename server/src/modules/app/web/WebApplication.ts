@@ -1,15 +1,12 @@
 import { Application, Router } from "oak/mod.ts";
-import {
-  ObjectDatabase,
-  objectDatabase,
-} from "@/core/storage/ObjectDatabase.ts";
 import { seedSystem } from "@/app/systems/SeedSystem.ts";
+import { LogStorage, logStorage } from "../../core/storage/LogStorage.ts";
 
 export class WebApplication {
   constructor(
     private oak: Application,
     private router: Router,
-    private objectDatabase: ObjectDatabase,
+    private logStorage: LogStorage,
   ) {
     this.configureOak();
   }
@@ -34,9 +31,9 @@ export class WebApplication {
     );
     if (seedLogData) {
       const execution = parseInt(seedLogData[1]);
-      const seedLog = await this.objectDatabase.followSeedLog({ execution });
+      const seedLog = await this.logStorage.readSeedLog({ execution });
       return {
-        response: new Response(seedLog.output, {
+        response: new Response(seedLog, {
           headers: {
             "access-control-allow-origin": "*",
             "content-type": "application/octet-stream",
@@ -52,5 +49,5 @@ export class WebApplication {
 export const webApplication = new WebApplication(
   new Application(),
   new Router(),
-  objectDatabase,
+  logStorage,
 );
