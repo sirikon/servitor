@@ -10,11 +10,13 @@ import {
 import { LogStorage, logStorage } from "@/core/storage/LogStorage.ts";
 import { EventBus, eventBus } from "@/core/events/EventBus.ts";
 import { Database, database } from "@/core/storage/Database.ts";
+import { Logger, logger } from "../../core/logging/Logger.ts";
 
 export class SeedSystem {
   private textEncoder = new TextEncoder();
 
   constructor(
+    private logger: Logger,
     private eventBus: EventBus,
     private configProvider: ConfigProvider,
     private logStorage: LogStorage,
@@ -30,6 +32,7 @@ export class SeedSystem {
 
     const done = (async () => {
       try {
+        this.logger.info(`Starting seed ${id}`);
         this.database.setSeedExecutionStartDate({ id, start_date: Date.now() });
         this.eventBus.emit("seed-execution-started", { id });
 
@@ -56,7 +59,15 @@ export class SeedSystem {
           context: "./seed/secrets",
           dockerfile: "./seed/secrets/Dockerfile",
         }, logWriter);
+      } catch (e: unknown) {
+        this.logger.error(
+          `Error while running seed ${id}: ${
+            e instanceof Error ? e.message : "" + e
+          }`,
+        );
+        throw e;
       } finally {
+        this.logger.info("Seed execution ended " + id);
         this.database.setSeedExecutionEndDate({ id, end_date: Date.now() });
         this.eventBus.emit("seed-execution-ended", { id });
         await logWriter.close();
@@ -119,6 +130,7 @@ export class SeedSystem {
 }
 
 export const seedSystem = new SeedSystem(
+  logger,
   eventBus,
   configProvider,
   logStorage,

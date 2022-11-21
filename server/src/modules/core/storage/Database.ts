@@ -1,5 +1,6 @@
 import { Database as SqliteDatabase } from "sqlite3/mod.ts";
 import { EventBus, eventBus } from "../events/EventBus.ts";
+import { Logger, logger } from "../logging/Logger.ts";
 
 type SeedExecutionsRecord = {
   id: number;
@@ -10,6 +11,7 @@ type SeedExecutionsRecord = {
 
 export class Database {
   constructor(
+    private logger: Logger,
     private eventBus: EventBus,
     private db: SqliteDatabase,
   ) {
@@ -63,6 +65,7 @@ export class Database {
 
   private hookEvents() {
     this.eventBus.on("shutdown", () => {
+      this.logger.info("Closing database");
       this.db.close();
     });
   }
@@ -79,4 +82,8 @@ CREATE TABLE IF NOT EXISTS seed_executions (
 COMMIT;
 `;
 
-export const database = new Database(eventBus, new SqliteDatabase("data.db"));
+export const database = new Database(
+  logger,
+  eventBus,
+  new SqliteDatabase("data.db"),
+);
