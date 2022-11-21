@@ -7,6 +7,20 @@ export class RelationalDatabase {
     private databaseClazz: typeof Database,
   ) {
     this.db = new this.databaseClazz("data.db");
+    this.db.exec(init);
+
+    Deno.addSignalListener("SIGINT", () => {
+      console.log("Closing db");
+    });
+  }
+
+  public insertSeedExecution() {
+    const stmt = this.db.prepare(
+      "INSERT INTO seed_executions (date) VALUES (unixepoch('now')) RETURNING id",
+    );
+    const [id] = stmt.value<[number]>()!;
+    stmt.finalize();
+    return id;
   }
 
   public getSqliteVersion() {
@@ -15,5 +29,12 @@ export class RelationalDatabase {
     return version;
   }
 }
+
+const init = `
+CREATE TABLE IF NOT EXISTS seed_executions (
+  id INTEGER PRIMARY KEY,
+  date INTEGER NOT NULL
+);
+`;
 
 export const relationalDatabase = new RelationalDatabase(Database);

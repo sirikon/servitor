@@ -9,6 +9,10 @@ import {
 } from "@/core/containers/DockerDriver.ts";
 import { GlobalState, globalState } from "@/core/state/GlobalState.ts";
 import { LogStorage, logStorage } from "@/core/storage/LogStorage.ts";
+import {
+  RelationalDatabase,
+  relationalDatabase,
+} from "@/core/storage/RelationalDatabase.ts";
 
 export class SeedSystem {
   private textEncoder = new TextEncoder();
@@ -17,11 +21,12 @@ export class SeedSystem {
     private globalState: GlobalState,
     private configProvider: ConfigProvider,
     private logStorage: LogStorage,
+    private relationalDatabase: RelationalDatabase,
     private dockerDriver: DockerDriver,
   ) {}
 
   public async execute() {
-    const id = Date.now();
+    const id = this.relationalDatabase.insertSeedExecution();
     const config = await this.configProvider.getConfig();
     const log = await this.logStorage.createSeedLog({ id });
     const logWriter = log.getWriter();
@@ -124,5 +129,6 @@ export const seedSystem = new SeedSystem(
   globalState,
   configProvider,
   logStorage,
+  relationalDatabase,
   dockerDriver,
 );
