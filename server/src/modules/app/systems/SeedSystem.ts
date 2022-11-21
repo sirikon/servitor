@@ -7,36 +7,31 @@ import {
   DockerDriver,
   dockerDriver,
 } from "@/core/containers/DockerDriver.ts";
-import { GlobalState, globalState } from "@/core/state/GlobalState.ts";
 import { LogStorage, logStorage } from "@/core/storage/LogStorage.ts";
-import {
-  RelationalDatabase,
-  relationalDatabase,
-} from "@/core/storage/RelationalDatabase.ts";
+import { EventBus, eventBus } from "@/core/events/EventBus.ts";
+import { Database, database } from "@/core/storage/Database.ts";
 
 export class SeedSystem {
   private textEncoder = new TextEncoder();
 
   constructor(
-    private globalState: GlobalState,
+    private eventBus: EventBus,
     private configProvider: ConfigProvider,
     private logStorage: LogStorage,
-    private relationalDatabase: RelationalDatabase,
+    private database: Database,
     private dockerDriver: DockerDriver,
   ) {}
 
   public async execute() {
-    const id = this.relationalDatabase.insertSeedExecution();
+    const id = this.database.insertSeedExecution();
     const config = await this.configProvider.getConfig();
     const log = await this.logStorage.createSeedLog({ id });
     const logWriter = log.getWriter();
 
     const done = (async () => {
       try {
-        this.globalState.setSeedExecutionRunningState({
-          id,
-          running: true,
-        });
+        this.database.setSeedExecutionStartDate({ id, start_date: Date.now() });
+        this.eventBus.emit("seed-execution-started", { id });
 
         try {
           await Deno.remove("./seed", { recursive: true });
@@ -62,10 +57,8 @@ export class SeedSystem {
           dockerfile: "./seed/secrets/Dockerfile",
         }, logWriter);
       } finally {
-        this.globalState.setSeedExecutionRunningState({
-          id,
-          running: false,
-        });
+        this.database.setSeedExecutionEndDate({ id, end_date: Date.now() });
+        this.eventBus.emit("seed-execution-ended", { id });
         await logWriter.close();
       }
     })();
@@ -126,9 +119,9 @@ export class SeedSystem {
 }
 
 export const seedSystem = new SeedSystem(
-  globalState,
+  eventBus,
   configProvider,
   logStorage,
-  relationalDatabase,
+  database,
   dockerDriver,
 );

@@ -1,6 +1,7 @@
 import { dirname, join } from "std/path/mod.ts";
 import { ensureDir } from "std/fs/ensure_dir.ts";
-import { GlobalState, globalState } from "@/core/state/GlobalState.ts";
+import { EventBus, eventBus } from "../events/EventBus.ts";
+import { Database, database } from "./Database.ts";
 
 type SeedLogIdentifier = {
   id: number;
@@ -13,7 +14,8 @@ type LogIdentifier = {
 
 export class LogStorage {
   constructor(
-    private globalState: GlobalState,
+    private eventBus: EventBus,
+    private database: Database,
   ) {}
 
   public async createSeedLog(opts: SeedLogIdentifier) {
@@ -24,7 +26,7 @@ export class LogStorage {
   }
 
   public async readSeedLog(opts: SeedLogIdentifier) {
-    const isRunning = this.globalState.isSeedExecutionRunning(opts);
+    const isRunning = this.isSeedExecutionRunning(opts);
     const { readable, stop } = await this.readLog({
       category: ["seed"],
       name: opts.id.toString(),
@@ -35,10 +37,10 @@ export class LogStorage {
       const handler = (event: { id: number }) => {
         if (event.id === opts.id) {
           stop();
-          this.globalState.eventEmitter.off("seed-execution-ended", handler);
+          this.eventBus.off("seed-execution-ended", handler);
         }
       };
-      this.globalState.eventEmitter.on("seed-execution-ended", handler);
+      this.eventBus.on("seed-execution-ended", handler);
     })();
 
     return readable;
@@ -111,6 +113,13 @@ export class LogStorage {
   private buildLogPath(id: LogIdentifier) {
     return join("logs", ...id.category, `${id.name}.txt`);
   }
+
+  private isSeedExecutionRunning(opts: { id: number }) {
+    const seedExecution = this.database.getSeedExecution(opts);
+    if (!seedExecution) return false;
+
+    return seedExecution.start_date != null && seedExecution.end_date == null;
+  }
 }
 
-export const logStorage = new LogStorage(globalState);
+export const logStorage = new LogStorage(eventBus, database);
