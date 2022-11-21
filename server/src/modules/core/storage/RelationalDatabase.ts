@@ -31,10 +31,12 @@ export class RelationalDatabase {
 }
 
 const init = `
+BEGIN;
 CREATE TABLE IF NOT EXISTS seed_executions (
   id INTEGER PRIMARY KEY,
   date INTEGER NOT NULL
 );
+COMMIT;
 `;
 
 export const relationalDatabase = new RelationalDatabase(Database);
