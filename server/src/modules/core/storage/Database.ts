@@ -1,6 +1,6 @@
 import { Database as SqliteDatabase } from "sqlite3/mod.ts";
-import { EventBus, eventBus } from "../events/EventBus.ts";
-import { Logger, logger } from "../logging/Logger.ts";
+import { EventBus, eventBus } from "@/core/events/EventBus.ts";
+import { Logger, logger } from "@/core/logging/Logger.ts";
 
 type SeedExecutionsRecord = {
   id: number;

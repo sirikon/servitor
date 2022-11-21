@@ -10,7 +10,7 @@ import {
 import { LogStorage, logStorage } from "@/core/storage/LogStorage.ts";
 import { EventBus, eventBus } from "@/core/events/EventBus.ts";
 import { Database, database } from "@/core/storage/Database.ts";
-import { Logger, logger } from "../../core/logging/Logger.ts";
+import { Logger, logger } from "@/core/logging/Logger.ts";
 
 export class SeedSystem {
   private textEncoder = new TextEncoder();

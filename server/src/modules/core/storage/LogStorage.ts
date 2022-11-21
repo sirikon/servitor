@@ -1,7 +1,7 @@
 import { dirname, join } from "std/path/mod.ts";
 import { ensureDir } from "std/fs/ensure_dir.ts";
-import { EventBus, eventBus } from "../events/EventBus.ts";
-import { Database, database } from "./Database.ts";
+import { EventBus, eventBus } from "@/core/events/EventBus.ts";
+import { Database, database } from "@/core/storage/Database.ts";
 
 type SeedLogIdentifier = {
   id: number;
