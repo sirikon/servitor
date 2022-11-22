@@ -1,52 +1,24 @@
 import { dirname, join } from "std/path/mod.ts";
 import { ensureDir } from "std/fs/ensure_dir.ts";
-import { EventBus, eventBus } from "@/core/events/EventBus.ts";
-import { Database, database } from "@/core/storage/Database.ts";
 
-type SeedLogIdentifier = {
-  id: number;
-};
-
-type LogIdentifier = {
+export type LogIdentifier = {
   category: string[];
   name: string;
 };
 
+export type CreateLogOpts = LogIdentifier;
+export type ReadLogOpts = LogIdentifier & {
+  mode: "read-full" | "tail";
+};
+export type ReadLogsResult = {
+  readable: ReadableStream<Uint8Array>;
+  stop: () => void;
+};
+
 export class LogStorage {
-  constructor(
-    private eventBus: EventBus,
-    private database: Database,
-  ) {}
+  constructor() {}
 
-  public async createSeedLog(opts: SeedLogIdentifier) {
-    return await this.createLog({
-      category: ["seed"],
-      name: opts.id.toString(),
-    });
-  }
-
-  public async readSeedLog(opts: SeedLogIdentifier) {
-    const isRunning = this.isSeedExecutionRunning(opts);
-    const { readable, stop } = await this.readLog({
-      category: ["seed"],
-      name: opts.id.toString(),
-      mode: isRunning ? "stream" : "read-full",
-    });
-
-    isRunning && (() => {
-      const handler = (event: { id: number }) => {
-        if (event.id === opts.id) {
-          stop();
-          this.eventBus.off("seed-execution-ended", handler);
-        }
-      };
-      this.eventBus.on("seed-execution-ended", handler);
-    })();
-
-    return readable;
-  }
-
-  private async createLog(opts: LogIdentifier) {
+  public async createLog(opts: LogIdentifier) {
     const logPath = this.buildLogPath(opts);
     await ensureDir(dirname(logPath));
     const file = await Deno.open(logPath, {
@@ -56,9 +28,7 @@ export class LogStorage {
     return file.writable;
   }
 
-  private async readLog(
-    opts: LogIdentifier & { mode: "read-full" | "stream" },
-  ): Promise<{ readable: ReadableStream<Uint8Array>; stop: () => void }> {
+  public async readLog(opts: ReadLogOpts): Promise<ReadLogsResult> {
     const logPath = this.buildLogPath(opts);
 
     if (opts.mode === "read-full") {
@@ -113,13 +83,6 @@ export class LogStorage {
   private buildLogPath(id: LogIdentifier) {
     return join("logs", ...id.category, `${id.name}.txt`);
   }
-
-  private isSeedExecutionRunning(opts: { id: number }) {
-    const seedExecution = this.database.getSeedExecution(opts);
-    if (!seedExecution) return false;
-
-    return seedExecution.start_date != null && seedExecution.end_date == null;
-  }
 }
 
-export const logStorage = new LogStorage(eventBus, database);
+export const logStorage = new LogStorage();

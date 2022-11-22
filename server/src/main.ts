@@ -1,5 +1,5 @@
-import { webServerDaemon } from "@/daemon/WebServerDaemon.ts";
 import { eventBus } from "@/core/events/EventBus.ts";
+import { webServerDaemon } from "@/app/web/WebServer.ts";
 
 Deno.addSignalListener("SIGINT", () => {
   eventBus.emit("shutdown");

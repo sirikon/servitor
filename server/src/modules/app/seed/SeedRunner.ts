@@ -2,38 +2,38 @@ import {
   ConfigProvider,
   configProvider,
 } from "@/core/config/ConfigProvider.ts";
+import { EventBus, eventBus } from "@/core/events/EventBus.ts";
+import { Logger, logger } from "@/core/logging/Logger.ts";
+import { SeedLogStorage, seedLogStorage } from "@/core/seed/SeedLogStorage.ts";
+import { SeedDatabase, seedDatabase } from "@/core/seed/SeedDatabase.ts";
 import {
   DockerBuildOpts,
   DockerDriver,
   dockerDriver,
-} from "@/core/containers/DockerDriver.ts";
-import { LogStorage, logStorage } from "@/core/storage/LogStorage.ts";
-import { EventBus, eventBus } from "@/core/events/EventBus.ts";
-import { Database, database } from "@/core/storage/Database.ts";
-import { Logger, logger } from "@/core/logging/Logger.ts";
+} from "@/infrastructure/DockerDriver.ts";
 
-export class SeedSystem {
+export class SeedRunner {
   private textEncoder = new TextEncoder();
 
   constructor(
     private logger: Logger,
     private eventBus: EventBus,
     private configProvider: ConfigProvider,
-    private logStorage: LogStorage,
-    private database: Database,
+    private seedLogStorage: SeedLogStorage,
+    private seedDatabase: SeedDatabase,
     private dockerDriver: DockerDriver,
   ) {}
 
   public async execute() {
-    const id = this.database.insertSeedExecution();
+    const { id } = this.seedDatabase.createExecution();
     const config = await this.configProvider.getConfig();
-    const log = await this.logStorage.createSeedLog({ id });
+    const log = await this.seedLogStorage.createExecutionLog({ id });
     const logWriter = log.getWriter();
 
     const done = (async () => {
       try {
         this.logger.info(`Starting seed ${id}`);
-        this.database.setSeedExecutionStartDate({ id, start_date: Date.now() });
+        this.seedDatabase.setExecutionStartDate({ id, startDate: Date.now() });
         this.eventBus.emit("seed-execution-started", { id });
 
         try {
@@ -68,7 +68,7 @@ export class SeedSystem {
         throw e;
       } finally {
         this.logger.info("Seed execution ended " + id);
-        this.database.setSeedExecutionEndDate({ id, end_date: Date.now() });
+        this.seedDatabase.setExecutionEndDate({ id, endDate: Date.now() });
         this.eventBus.emit("seed-execution-ended", { id });
         await logWriter.close();
       }
@@ -129,11 +129,11 @@ export class SeedSystem {
   }
 }
 
-export const seedSystem = new SeedSystem(
+export const seedRunner = new SeedRunner(
   logger,
   eventBus,
   configProvider,
-  logStorage,
-  database,
+  seedLogStorage,
+  seedDatabase,
   dockerDriver,
 );
