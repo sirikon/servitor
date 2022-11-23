@@ -130,7 +130,17 @@
     "https://deno.land/x/sqlite3@0.6.1/src/ffi.ts": "d35fe2fb17cda5334fd8d3a69e0c443061ccc0908042051e41fbf43df4bc7ca0",
     "https://deno.land/x/sqlite3@0.6.1/src/statement.ts": "2c82a59d0cd92b9d04a8b29afdea4cdf45d64d89d396c950fe50e05d1e04a721",
     "https://deno.land/x/sqlite3@0.6.1/src/util.ts": "98cb0ac5c3483db26a0c99056c873ebd9ed35b11d23b4124e1d95bc5864da2c6",
+    "https://esm.sh/async-mutex@0.4.0?pin=v99": "5623b86c7e0e96d4d83acc25e183eb9c581246f664bafcbf263c2b7803c19015",
     "https://esm.sh/eventemitter3@4.0.7?pin=v99": "1ec3a467303ebc7ed751d66443afd64158b748ec07540534d59f18b85d36d53e",
+    "https://esm.sh/v99/async-mutex@0.4.0/deno/async-mutex.js": "756ee3196031116dda86aef27f1ef43db80a9b45f29f2a4ccdf164cafaa34a81",
+    "https://esm.sh/v99/async-mutex@0.4.0/lib/Mutex.d.ts": "086e9e08c7c7223e8dc29b2072503d8a825ac88b1c9fe2f45d98254dd567bbdb",
+    "https://esm.sh/v99/async-mutex@0.4.0/lib/MutexInterface.d.ts": "b9560db219848e61afa03ca1c5e60bfd9fe8caa162d229284285211db7da4a74",
+    "https://esm.sh/v99/async-mutex@0.4.0/lib/Semaphore.d.ts": "efaa5f848344b1c0c5f8de064c164468119ead6a9dc7f011c5e7cf35ba9efc0c",
+    "https://esm.sh/v99/async-mutex@0.4.0/lib/SemaphoreInterface.d.ts": "3e595b8d9d3c0a9b7a67d6c06fb25b6df81b1f60c9b738b8131b000e5edb9c69",
+    "https://esm.sh/v99/async-mutex@0.4.0/lib/errors.d.ts": "a5c38939c3e22954a7166d80ab931ac6757283737b000f1e6dc924c6f4402b88",
+    "https://esm.sh/v99/async-mutex@0.4.0/lib/index.d.ts": "71d7efd7e410d2730487679c375bab1e45cd08e7f219f2a45b01eb9296282587",
+    "https://esm.sh/v99/async-mutex@0.4.0/lib/tryAcquire.d.ts": "6674451fb09daf92a3072a6011ce06ad2737b959096457aca010685ef8444c51",
+    "https://esm.sh/v99/async-mutex@0.4.0/lib/withTimeout.d.ts": "8d93c118b75958062e48011799e1b603344bc42855274fe9801048c56b9b82d0",
     "https://esm.sh/v99/eventemitter3@4.0.7/deno/eventemitter3.js": "a283bba29405b85b408ee000a898e3fb131d679d5660a051fa696100f8f1cbd7",
     "https://esm.sh/v99/eventemitter3@4.0.7/index.d.ts": "b80c780c52524beb13488942543972c8b0e54400e8b59cee0169f38d0fabb968"
   }

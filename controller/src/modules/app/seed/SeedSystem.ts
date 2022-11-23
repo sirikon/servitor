@@ -1,3 +1,4 @@
+import { Mutex } from "async-mutex";
 import { configProvider } from "@/core/config/ConfigProvider.ts";
 import { seedLogStorage } from "@/core/seed/SeedLogStorage.ts";
 import { dockerDriver } from "@/infrastructure/DockerDriver.ts";
@@ -8,6 +9,8 @@ import { seedStore } from "@/core/seed/SeedStore.ts";
 import { seedActions } from "@/core/seed/SeedActions.ts";
 
 export class SeedSystem {
+  private executionMutex = new Mutex();
+
   constructor(
     private seedStore: SeedStore,
   ) {}
@@ -22,15 +25,17 @@ export class SeedSystem {
 
   private async runExecution(execution: { id: number }) {
     try {
-      const runner = new SeedRunner(
-        execution,
-        logger,
-        configProvider,
-        seedActions,
-        seedLogStorage,
-        dockerDriver,
-      );
-      await runner.execute();
+      await this.executionMutex.runExclusive(async () => {
+        const runner = new SeedRunner(
+          execution,
+          logger,
+          configProvider,
+          seedActions,
+          seedLogStorage,
+          dockerDriver,
+        );
+        await runner.execute();
+      });
     } catch (_: unknown) { /**/ }
   }
 }

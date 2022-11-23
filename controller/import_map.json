@@ -5,6 +5,7 @@
     "sqlite3/": "https://deno.land/x/sqlite3@0.6.1/",
     "oak/": "https://deno.land/x/oak@v11.1.0/",
     "zod": "https://esm.sh/zod@3.19.1?pin=v99",
-    "eventemitter3": "https://esm.sh/eventemitter3@4.0.7?pin=v99"
+    "eventemitter3": "https://esm.sh/eventemitter3@4.0.7?pin=v99",
+    "async-mutex": "https://esm.sh/async-mutex@0.4.0?pin=v99"
   }
 }
