@@ -46,7 +46,7 @@ export class SeedStore {
 
   public setExecutionEndDate(opts: { id: number; endDate: number }) {
     const execution = this.database.queryOne<SeedExecution>({
-      sql: "UPDATE seed_executions SET endDate = ? WHERE id = ?",
+      sql: "UPDATE seed_executions SET endDate = ? WHERE id = ? RETURNING *",
       params: [opts.endDate, opts.id],
     })!;
     this.events.emit("execution-updated", { execution });
