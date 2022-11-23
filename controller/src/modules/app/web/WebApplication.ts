@@ -20,6 +20,14 @@ export class WebApplication {
       ctx.response.body = await seedActions.createExecution();
     });
 
+    this.router.get("/api/seed/executions/:id/logs", async (ctx) => {
+      ctx.response.headers.set("content-type", "text/plain");
+      ctx.response.headers.set("x-content-type-options", "nosniff");
+      ctx.response.body = await this.seedLogStorage.readExecutionLog({
+        id: parseInt(ctx.params.id),
+      });
+    });
+
     this.oak.use(async (ctx, next) => {
       ctx.response.headers.set("access-control-allow-origin", "*");
       await next();
@@ -32,20 +40,6 @@ export class WebApplication {
     request: Request,
     conn: Deno.Conn,
   ): Promise<Response | undefined> {
-    const seedLogData = new URL(request.url).pathname.match(
-      /^\/api\/seed\/executions\/([0-9]+)\/logs$/,
-    );
-    if (seedLogData) {
-      const id = parseInt(seedLogData[1]);
-      const seedLog = await this.seedLogStorage.readExecutionLog({ id });
-      return new Response(seedLog, {
-        headers: {
-          "access-control-allow-origin": "*",
-          "content-type": "text/plain",
-          "x-content-type-options": "nosniff",
-        },
-      });
-    }
     return await this.oak.handle(request, conn);
   }
 }
