@@ -1,59 +1,59 @@
 #!/usr/bin/env python3
 import os
 
-SERVER_DENO_ENTRY = os.path.abspath('server/src/main.ts')
-SERVER_DENO_EXEC_FLAGS = ['-A', '--unstable']
-SERVER_DENO_CONFIG = ['--config', os.path.abspath('server/deno.json')]
-SERVER_DENO_IMPORT_MAP = [
+CTRL_DENO_ENTRY = os.path.abspath('controller/src/main.ts')
+CTRL_DENO_EXEC_FLAGS = ['-A', '--unstable']
+CTRL_DENO_CONFIG = ['--config', os.path.abspath('controller/deno.json')]
+CTRL_DENO_IMPORT_MAP = [
     '--import-map',
-    os.path.abspath('server/import_map.json')]
-SERVER_DENO_LOCK = ['--lock', os.path.abspath('server/lock.json')]
+    os.path.abspath('controller/import_map.json')]
+CTRL_DENO_LOCK = ['--lock', os.path.abspath('controller/lock.json')]
 
 
 def cli():
 
     @command
-    def fe_start():
-        if not os.path.isdir('frontend/node_modules'):
-            cmd('npm', 'i', cwd='frontend')
-        cmd('npm', 'exec', 'teseract', 'serve', cwd='frontend')
+    def ui_start():
+        if not os.path.isdir('ui/node_modules'):
+            cmd('npm', 'i', cwd='ui')
+        cmd('npm', 'exec', 'teseract', 'serve', cwd='ui')
 
     @command
-    def sv_start(*args):
+    def ctrl_start(*args):
         cmd('mkdir', '-p', 'workdir')
         cmd('deno', 'run',
-            *SERVER_DENO_EXEC_FLAGS,
-            *SERVER_DENO_CONFIG,
-            *SERVER_DENO_IMPORT_MAP,
-            *SERVER_DENO_LOCK,
-            SERVER_DENO_ENTRY, *args, cwd='workdir')
+            *CTRL_DENO_EXEC_FLAGS,
+            *CTRL_DENO_CONFIG,
+            *CTRL_DENO_IMPORT_MAP,
+            *CTRL_DENO_LOCK,
+            CTRL_DENO_ENTRY, *args, cwd='workdir')
 
     @command
-    def sv_cache():
+    def ctrl_cache():
         cmd('deno', 'cache',
-            *SERVER_DENO_CONFIG,
-            *SERVER_DENO_IMPORT_MAP,
-            *SERVER_DENO_LOCK,
-            SERVER_DENO_ENTRY)
+            *CTRL_DENO_CONFIG,
+            *CTRL_DENO_IMPORT_MAP,
+            *CTRL_DENO_LOCK,
+            CTRL_DENO_ENTRY)
 
     @command
-    def sv_lock():
+    def ctrl_lock():
         cmd('deno', 'cache',
-            *SERVER_DENO_CONFIG,
-            *SERVER_DENO_IMPORT_MAP,
-            *SERVER_DENO_LOCK,
+            *CTRL_DENO_CONFIG,
+            *CTRL_DENO_IMPORT_MAP,
+            *CTRL_DENO_LOCK,
             '--lock-write',
-            SERVER_DENO_ENTRY)
+            CTRL_DENO_ENTRY)
 
     @command
     def fmt():
-        cmd('deno', 'fmt', *SERVER_DENO_CONFIG, 'server/src')
-        cmd('npm', 'exec', 'teseract', 'lint', '--fix', cwd='frontend')
+        cmd('deno', 'fmt', *CTRL_DENO_CONFIG, 'controller/src')
+        cmd('npm', 'exec', 'teseract', 'lint', '--fix', cwd='ui')
 
     @command
     def lint():
-        cmd('deno', 'lint', *SERVER_DENO_CONFIG, 'server/src')
-        cmd('npm', 'exec', 'teseract', 'lint', cwd='frontend')
+        cmd('deno', 'lint', *CTRL_DENO_CONFIG, 'controller/src')
+        cmd('npm', 'exec', 'teseract', 'lint', cwd='ui')
 
     @command
     def devenv():
@@ -61,7 +61,7 @@ def cli():
 
     @command
     def devenv_sh():
-        compose('exec', 'server', 'sh')
+        compose('exec', 'controller', 'sh')
 
 
 def compose(*args):
