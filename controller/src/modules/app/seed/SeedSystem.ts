@@ -1,19 +1,23 @@
 import { configProvider } from "@/core/config/ConfigProvider.ts";
-import { SeedActions, seedActions } from "@/core/seed/SeedActions.ts";
 import { seedLogStorage } from "@/core/seed/SeedLogStorage.ts";
 import { dockerDriver } from "@/infrastructure/DockerDriver.ts";
 import { logger } from "@/infrastructure/Logger.ts";
 import { SeedRunner } from "@/app/seed/SeedRunner.ts";
+import { SeedStore } from "@/core/seed/SeedStore.ts";
+import { seedStore } from "@/core/seed/SeedStore.ts";
+import { seedActions } from "@/core/seed/SeedActions.ts";
 
 export class SeedSystem {
   constructor(
-    private seedActions: SeedActions,
+    private seedStore: SeedStore,
   ) {}
 
-  public async execute() {
-    const { id } = await this.seedActions.createExecution();
-    this.runExecution({ id });
-    return { id };
+  public start() {
+    this.seedStore.events.on("execution-updated", ({ execution }) => {
+      if (execution.status === "scheduled") {
+        this.runExecution(execution);
+      }
+    });
   }
 
   private async runExecution(execution: { id: number }) {
@@ -31,4 +35,4 @@ export class SeedSystem {
   }
 }
 
-export const seedSystem = new SeedSystem(seedActions);
+export const seedSystem = new SeedSystem(seedStore);

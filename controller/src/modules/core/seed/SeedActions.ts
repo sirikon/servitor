@@ -12,17 +12,18 @@ export class SeedActions {
   public async createExecution() {
     const { id } = this.seedStore.createExecution();
     await this.seedLogStorage.createExecutionLog({ id });
+    this.seedStore.scheduleExecution({ id });
     return { id };
   }
 
   public startExecution({ id }: { id: number }) {
     this.logger.info(`Starting Seed Execution [${id}]`);
-    this.seedStore.setExecutionStartDate({ id, startDate: Date.now() });
+    this.seedStore.startExecution({ id, startDate: Date.now() });
   }
 
   public endExecution({ id }: { id: number }) {
     this.logger.info(`Ended Seed Execution [${id}]`);
-    this.seedStore.setExecutionEndDate({ id, endDate: Date.now() });
+    this.seedStore.endExecution({ id, endDate: Date.now() });
   }
 }
 

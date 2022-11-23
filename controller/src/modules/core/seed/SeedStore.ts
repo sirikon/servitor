@@ -3,6 +3,7 @@ import { Database, database } from "@/infrastructure/Database.ts";
 
 export type SeedExecution = {
   id: number;
+  status: "created" | "scheduled" | "running" | "finished";
   createDate: number;
   startDate: number | null;
   endDate: number | null;
@@ -22,8 +23,9 @@ export class SeedStore {
 
   public createExecution() {
     const execution = this.database.queryOne<SeedExecution>({
-      sql: "INSERT INTO seed_executions (createDate) VALUES (?) RETURNING *",
-      params: [Date.now()],
+      sql:
+        "INSERT INTO seed_executions (status, createDate) VALUES (?, ?) RETURNING *",
+      params: ["created", Date.now()],
     })!;
     this.events.emit("execution-updated", { execution });
     return execution;
@@ -36,18 +38,28 @@ export class SeedStore {
     }) || null;
   }
 
-  public setExecutionStartDate(opts: { id: number; startDate: number }) {
+  public scheduleExecution(opts: { id: number }) {
     const execution = this.database.queryOne<SeedExecution>({
-      sql: "UPDATE seed_executions SET startDate = ? WHERE id = ? RETURNING *",
-      params: [opts.startDate, opts.id],
+      sql: "UPDATE seed_executions SET status = ? WHERE id = ? RETURNING *",
+      params: ["scheduled", opts.id],
     })!;
     this.events.emit("execution-updated", { execution });
   }
 
-  public setExecutionEndDate(opts: { id: number; endDate: number }) {
+  public startExecution(opts: { id: number; startDate: number }) {
     const execution = this.database.queryOne<SeedExecution>({
-      sql: "UPDATE seed_executions SET endDate = ? WHERE id = ? RETURNING *",
-      params: [opts.endDate, opts.id],
+      sql:
+        "UPDATE seed_executions SET status = ?, startDate = ? WHERE id = ? RETURNING *",
+      params: ["running", opts.startDate, opts.id],
+    })!;
+    this.events.emit("execution-updated", { execution });
+  }
+
+  public endExecution(opts: { id: number; endDate: number }) {
+    const execution = this.database.queryOne<SeedExecution>({
+      sql:
+        "UPDATE seed_executions SET status = ?, endDate = ? WHERE id = ? RETURNING *",
+      params: ["finished", opts.endDate, opts.id],
     })!;
     this.events.emit("execution-updated", { execution });
   }
@@ -57,6 +69,7 @@ const init = `
 BEGIN;
 CREATE TABLE IF NOT EXISTS seed_executions (
   id INTEGER PRIMARY KEY,
+  status TEXT NOT NULL,
   createDate INTEGER NOT NULL,
   startDate INTEGER NULL,
   endDate INTEGER NULL

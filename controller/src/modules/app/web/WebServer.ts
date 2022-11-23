@@ -3,6 +3,7 @@ import {
   configProvider,
 } from "@/core/config/ConfigProvider.ts";
 import { WebApplication, webApplication } from "@/app/web/WebApplication.ts";
+import { logger } from "../../infrastructure/Logger.ts";
 
 export class WebServerDaemon {
   constructor(
@@ -17,7 +18,7 @@ export class WebServerDaemon {
       hostname: config.web.host,
       port: config.web.port,
     });
-    console.log(`http://127.0.0.1:${config.web.port}`);
+    logger.info(`Listening on http://127.0.0.1:${config.web.port}`);
 
     for await (const conn of listener) {
       (async () => {
