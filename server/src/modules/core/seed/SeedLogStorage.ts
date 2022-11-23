@@ -12,7 +12,14 @@ export class SeedLogStorage {
   ) {}
 
   public async createExecutionLog(opts: { id: number }) {
-    return await this.logStorage.createLog({
+    await this.logStorage.createLog({
+      category: LOG_CATEGORY,
+      name: opts.id.toString(),
+    });
+  }
+
+  public async writeExecutionLog(opts: { id: number }) {
+    return await this.logStorage.writeLog({
       category: LOG_CATEGORY,
       name: opts.id.toString(),
     });

@@ -21,8 +21,12 @@ export class LogStorage {
   public async createLog(opts: LogIdentifier) {
     const logPath = this.buildLogPath(opts);
     await ensureDir(dirname(logPath));
+    await Deno.writeFile(logPath, new Uint8Array());
+  }
+
+  public async writeLog(opts: LogIdentifier) {
+    const logPath = this.buildLogPath(opts);
     const file = await Deno.open(logPath, {
-      createNew: true,
       write: true,
     });
     return file.writable;

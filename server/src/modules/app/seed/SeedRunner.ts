@@ -2,39 +2,40 @@ import {
   ConfigProvider,
   configProvider,
 } from "@/core/config/ConfigProvider.ts";
-import { EventBus, eventBus } from "@/core/events/EventBus.ts";
 import { Logger, logger } from "@/core/logging/Logger.ts";
 import { SeedLogStorage, seedLogStorage } from "@/core/seed/SeedLogStorage.ts";
-import { SeedDatabase, seedDatabase } from "@/core/seed/SeedDatabase.ts";
 import {
   DockerBuildOpts,
   DockerDriver,
   dockerDriver,
 } from "@/infrastructure/DockerDriver.ts";
+import { SeedActions, seedActions } from "@/core/seed/SeedActions.ts";
 
 export class SeedRunner {
   private textEncoder = new TextEncoder();
 
   constructor(
     private logger: Logger,
-    private eventBus: EventBus,
     private configProvider: ConfigProvider,
+    private seedActions: SeedActions,
     private seedLogStorage: SeedLogStorage,
-    private seedDatabase: SeedDatabase,
     private dockerDriver: DockerDriver,
   ) {}
 
   public async execute() {
-    const { id } = this.seedDatabase.createExecution();
     const config = await this.configProvider.getConfig();
-    const log = await this.seedLogStorage.createExecutionLog({ id });
-    const logWriter = log.getWriter();
+    const { id } = await this.seedActions.createExecution();
 
     const done = (async () => {
+      const log = (await this.seedLogStorage.writeExecutionLog({ id }))
+        .getWriter();
+
+      const logLine = async (text: string) => {
+        await log.write(this.textEncoder.encode(`=== ${text}\n`));
+      };
+
       try {
-        this.logger.info(`Starting seed ${id}`);
-        this.seedDatabase.setExecutionStartDate({ id, startDate: Date.now() });
-        this.eventBus.emit("seed-execution-started", { id });
+        this.seedActions.startExecution({ id });
 
         try {
           await Deno.remove("./seed", { recursive: true });
@@ -42,23 +43,19 @@ export class SeedRunner {
           if (!(e instanceof Deno.errors.NotFound)) throw e;
         }
 
-        await logWriter.write(
-          this.textEncoder.encode(`=== Cloning ${config.seed.repo}\n`),
-        );
+        await logLine(`Cloning ${config.seed.repo}`);
         await this.runCommand(
           "git",
           ["clone", config.seed.repo, "seed"],
-          logWriter,
+          log,
         );
 
-        await logWriter.write(
-          this.textEncoder.encode(`\n=== Building docker image for secrets\n`),
-        );
+        await logLine("Building docker image for secrets");
         await this.buildDocker({
           image: `servitor-seed-${id}`,
           context: "./seed/secrets",
           dockerfile: "./seed/secrets/Dockerfile",
-        }, logWriter);
+        }, log);
       } catch (e: unknown) {
         this.logger.error(
           `Error while running seed ${id}: ${
@@ -67,10 +64,8 @@ export class SeedRunner {
         );
         throw e;
       } finally {
-        this.logger.info("Seed execution ended " + id);
-        this.seedDatabase.setExecutionEndDate({ id, endDate: Date.now() });
-        this.eventBus.emit("seed-execution-ended", { id });
-        await logWriter.close();
+        this.seedActions.endExecution({ id });
+        await log.close();
       }
     })();
 
@@ -131,9 +126,8 @@ export class SeedRunner {
 
 export const seedRunner = new SeedRunner(
   logger,
-  eventBus,
   configProvider,
+  seedActions,
   seedLogStorage,
-  seedDatabase,
   dockerDriver,
 );
