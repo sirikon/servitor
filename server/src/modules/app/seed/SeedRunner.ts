@@ -27,12 +27,11 @@ export class SeedRunner {
     const { id } = await this.seedActions.createExecution();
 
     const done = (async () => {
-      const log = (await this.seedLogStorage.writeExecutionLog({ id }))
-        .getWriter();
+      const log = await this.seedLogStorage.writeExecutionLog({ id })
+        .then((l) => l.getWriter());
 
-      const logLine = async (text: string) => {
-        await log.write(this.textEncoder.encode(`=== ${text}\n`));
-      };
+      const logLine = (text: string) =>
+        log.write(this.textEncoder.encode(`=== ${text}\n`));
 
       try {
         this.seedActions.startExecution({ id });
