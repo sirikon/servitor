@@ -1,82 +1,62 @@
-import {
-  ConfigProvider,
-  configProvider,
-} from "@/core/config/ConfigProvider.ts";
-import { Logger, logger } from "@/core/logging/Logger.ts";
-import { SeedLogStorage, seedLogStorage } from "@/core/seed/SeedLogStorage.ts";
+import { ConfigProvider } from "@/core/config/ConfigProvider.ts";
+import { Logger } from "@/infrastructure/Logger.ts";
+import { SeedLogStorage } from "@/core/seed/SeedLogStorage.ts";
 import {
   DockerBuildOpts,
   DockerDriver,
-  dockerDriver,
 } from "@/infrastructure/DockerDriver.ts";
-import { SeedActions, seedActions } from "@/core/seed/SeedActions.ts";
+import { SeedActions } from "@/core/seed/SeedActions.ts";
 
 export class SeedRunner {
   private textEncoder = new TextEncoder();
+  private writer: Promise<WritableStreamDefaultWriter<Uint8Array>>;
 
   constructor(
+    private execution: { id: number },
     private logger: Logger,
     private configProvider: ConfigProvider,
     private seedActions: SeedActions,
     private seedLogStorage: SeedLogStorage,
     private dockerDriver: DockerDriver,
-  ) {}
+  ) {
+    this.writer = this.seedLogStorage.writeExecutionLog(this.execution)
+      .then((l) => l.getWriter());
+  }
 
   public async execute() {
-    const config = await this.configProvider.getConfig();
-    const { id } = await this.seedActions.createExecution();
+    try {
+      const config = await this.configProvider.getConfig();
+      this.seedActions.startExecution(this.execution);
 
-    const done = (async () => {
-      const log = await this.seedLogStorage.writeExecutionLog({ id })
-        .then((l) => l.getWriter());
+      await this.writeLogLine("Removing existing seed folder");
+      await this.removeSeedFolder();
 
-      const logLine = (text: string) =>
-        log.write(this.textEncoder.encode(`=== ${text}\n`));
+      await this.writeLogLine(`Cloning ${config.seed.repo}`);
+      await this.runCommand("git", ["clone", config.seed.repo, "seed"]);
 
-      try {
-        this.seedActions.startExecution({ id });
-
-        try {
-          await Deno.remove("./seed", { recursive: true });
-        } catch (e) {
-          if (!(e instanceof Deno.errors.NotFound)) throw e;
-        }
-
-        await logLine(`Cloning ${config.seed.repo}`);
-        await this.runCommand(
-          "git",
-          ["clone", config.seed.repo, "seed"],
-          log,
-        );
-
-        await logLine("Building docker image for secrets");
-        await this.buildDocker({
-          image: `servitor-seed-${id}`,
-          context: "./seed/secrets",
-          dockerfile: "./seed/secrets/Dockerfile",
-        }, log);
-      } catch (e: unknown) {
-        this.logger.error(
-          `Error while running seed ${id}: ${
-            e instanceof Error ? e.message : "" + e
-          }`,
-        );
-        throw e;
-      } finally {
-        this.seedActions.endExecution({ id });
-        await log.close();
-      }
-    })();
-
-    return { id, done };
+      await this.writeLogLine("Building docker image for secrets");
+      await this.buildDocker({
+        image: `servitor-seed-${this.execution.id}`,
+        context: "./seed/secrets",
+        dockerfile: "./seed/secrets/Dockerfile",
+      });
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : "" + e;
+      this.logger.error(
+        `Error while running seed ${this.execution.id}: ${errorMessage}`,
+      );
+      throw e;
+    } finally {
+      this.seedActions.endExecution(this.execution);
+      await this.closeLog();
+    }
   }
 
   private async runCommand(
     command: string,
     args: string[],
-    log: WritableStreamDefaultWriter<Uint8Array>,
   ) {
-    const { stdout, stderr } = this.buildWritableOutputs(log);
+    const { stdout, stderr } = await this.buildWritableOutputs();
     const cmd = new Deno.Command(command, {
       args,
       stdin: "null",
@@ -96,9 +76,8 @@ export class SeedRunner {
       DockerBuildOpts,
       "image" | "dockerfile" | "context"
     >,
-    log: WritableStreamDefaultWriter<Uint8Array>,
   ) {
-    const { stdout, stderr } = this.buildWritableOutputs(log);
+    const { stdout, stderr } = await this.buildWritableOutputs();
     await this.dockerDriver.build({
       image,
       context,
@@ -108,25 +87,34 @@ export class SeedRunner {
     });
   }
 
-  private buildWritableOutputs(log: WritableStreamDefaultWriter<Uint8Array>) {
+  private async buildWritableOutputs() {
+    const log = await this.writer;
     const stdout = new WritableStream<Uint8Array>({
-      write(d) {
-        log.write(d);
+      async write(d) {
+        await log.write(d);
       },
     });
     const stderr = new WritableStream<Uint8Array>({
-      write(d) {
-        log.write(d);
+      async write(d) {
+        await log.write(d);
       },
     });
     return { stdout, stderr };
   }
-}
 
-export const seedRunner = new SeedRunner(
-  logger,
-  configProvider,
-  seedActions,
-  seedLogStorage,
-  dockerDriver,
-);
+  private async removeSeedFolder() {
+    try {
+      await Deno.remove("./seed", { recursive: true });
+    } catch (e) {
+      if (!(e instanceof Deno.errors.NotFound)) throw e;
+    }
+  }
+
+  private async writeLogLine(text: string) {
+    (await this.writer).write(this.textEncoder.encode(`=== ${text}\n`));
+  }
+
+  private async closeLog() {
+    (await this.writer).close();
+  }
+}

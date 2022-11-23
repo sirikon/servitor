@@ -1,6 +1,6 @@
 import { Database as SqliteDatabase, RestBindParameters } from "sqlite3/mod.ts";
 import { EventBus, eventBus } from "@/core/events/EventBus.ts";
-import { Logger, logger } from "@/core/logging/Logger.ts";
+import { Logger, logger } from "@/infrastructure/Logger.ts";
 
 export class Database {
   constructor(

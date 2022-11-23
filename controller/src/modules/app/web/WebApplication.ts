@@ -1,6 +1,6 @@
 import { Application, Router } from "oak/mod.ts";
 import { SeedLogStorage, seedLogStorage } from "@/core/seed/SeedLogStorage.ts";
-import { seedRunner } from "@/app/seed/SeedRunner.ts";
+import { seedSystem } from "../seed/SeedSystem.ts";
 
 export class WebApplication {
   constructor(
@@ -17,7 +17,7 @@ export class WebApplication {
     });
 
     this.router.post("/api/seed/execute", async (ctx) => {
-      ctx.response.body = await seedRunner.execute();
+      ctx.response.body = await seedSystem.execute();
     });
 
     this.oak.use(async (ctx, next) => {

@@ -1,4 +1,4 @@
-import { Logger, logger } from "@/core/logging/Logger.ts";
+import { Logger, logger } from "@/infrastructure/Logger.ts";
 import { SeedStore, seedStore } from "@/core/seed/SeedStore.ts";
 import { SeedLogStorage, seedLogStorage } from "@/core/seed/SeedLogStorage.ts";
 
