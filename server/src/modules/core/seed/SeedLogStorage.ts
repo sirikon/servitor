@@ -1,14 +1,12 @@
 import { LogStorage, logStorage } from "@/infrastructure/LogStorage.ts";
-import { EventBus, eventBus } from "@/core/events/EventBus.ts";
-import { SeedDatabase, seedDatabase } from "@/core/seed/SeedDatabase.ts";
+import { SeedExecution, SeedStore, seedStore } from "@/core/seed/SeedStore.ts";
 
 const LOG_CATEGORY = ["seed"];
 
 export class SeedLogStorage {
   constructor(
-    private seedDatabase: SeedDatabase,
+    private seedStore: SeedStore,
     private logStorage: LogStorage,
-    private eventBus: EventBus,
   ) {}
 
   public async createExecutionLog(opts: { id: number }) {
@@ -34,19 +32,20 @@ export class SeedLogStorage {
     });
 
     isRunning && (() => {
-      const handler = (event: { id: number }) => {
-        if (event.id !== opts.id) return;
-        stop();
-        this.eventBus.off("seed-execution-ended", handler);
+      const handler = ({ execution }: { execution: SeedExecution }) => {
+        if (execution.id === opts.id && execution.endDate != null) {
+          stop();
+          this.seedStore.events.off("execution-updated", handler);
+        }
       };
-      this.eventBus.on("seed-execution-ended", handler);
+      this.seedStore.events.on("execution-updated", handler);
     })();
 
     return readable;
   }
 
   private isExecutionRunning(opts: { id: number }) {
-    const seedExecution = this.seedDatabase.getExecution(opts);
+    const seedExecution = this.seedStore.getExecution(opts);
     if (!seedExecution) return false;
 
     return seedExecution.startDate != null && seedExecution.endDate == null;
@@ -54,7 +53,6 @@ export class SeedLogStorage {
 }
 
 export const seedLogStorage = new SeedLogStorage(
-  seedDatabase,
+  seedStore,
   logStorage,
-  eventBus,
 );

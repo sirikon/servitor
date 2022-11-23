@@ -1,3 +1,4 @@
+import EventEmitter from "eventemitter3";
 import { Database, database } from "@/infrastructure/Database.ts";
 
 export type SeedExecution = {
@@ -7,18 +8,25 @@ export type SeedExecution = {
   endDate: number | null;
 };
 
-export class SeedDatabase {
+type SeedStoreEvents = {
+  "execution-updated": (args: { execution: SeedExecution }) => void;
+};
+
+export class SeedStore {
   constructor(
+    public events: EventEmitter<SeedStoreEvents>,
     private database: Database,
   ) {
     this.database.exec({ sql: init });
   }
 
   public createExecution() {
-    return this.database.queryOne<SeedExecution>({
+    const execution = this.database.queryOne<SeedExecution>({
       sql: "INSERT INTO seed_executions (createDate) VALUES (?) RETURNING *",
       params: [Date.now()],
     })!;
+    this.events.emit("execution-updated", { execution });
+    return execution;
   }
 
   public getExecution(opts: { id: number }) {
@@ -29,17 +37,19 @@ export class SeedDatabase {
   }
 
   public setExecutionStartDate(opts: { id: number; startDate: number }) {
-    this.database.run({
-      sql: "UPDATE seed_executions SET startDate = ? WHERE id = ?",
+    const execution = this.database.queryOne<SeedExecution>({
+      sql: "UPDATE seed_executions SET startDate = ? WHERE id = ? RETURNING *",
       params: [opts.startDate, opts.id],
-    });
+    })!;
+    this.events.emit("execution-updated", { execution });
   }
 
   public setExecutionEndDate(opts: { id: number; endDate: number }) {
-    this.database.run({
+    const execution = this.database.queryOne<SeedExecution>({
       sql: "UPDATE seed_executions SET endDate = ? WHERE id = ?",
       params: [opts.endDate, opts.id],
-    });
+    })!;
+    this.events.emit("execution-updated", { execution });
   }
 }
 
@@ -54,4 +64,7 @@ CREATE TABLE IF NOT EXISTS seed_executions (
 COMMIT;
 `;
 
-export const seedDatabase = new SeedDatabase(database);
+export const seedStore = new SeedStore(
+  new EventEmitter(),
+  database,
+);
