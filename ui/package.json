@@ -1,4 +1,5 @@
 {
+  "name": "servitor-ui",
   "scripts": {
     "postinstall": "teseract gen"
   },
