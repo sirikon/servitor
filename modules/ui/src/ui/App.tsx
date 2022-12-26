@@ -2,9 +2,9 @@ import "./style.scss";
 
 import React from "react";
 import { createHashRouter, RouterProvider } from "react-router-dom";
-import Home from "./routes/Home";
-import Root from "./routes/Root";
-import Seed from "./routes/Seed";
+import Home from "@/ui/routes/Home";
+import Root from "@/ui/routes/Root";
+import Seed from "@/ui/routes/Seed";
 
 const router = createHashRouter([
   {

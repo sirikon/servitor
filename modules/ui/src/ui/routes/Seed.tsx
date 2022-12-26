@@ -1,7 +1,7 @@
+import { BASE_URL, servitorApi } from "@/services/ServitorApi";
 import React, { useCallback, useState } from "react";
-import { BASE_URL, servitorApi } from "../../services/ServitorApi";
-import { LogsViewer } from "../components/LogsViewer";
-import { useSeedExecutions } from "../hooks/useSeedExecutions";
+import { useSeedExecutions } from "@/ui/hooks/useSeedExecutions";
+import { LogsViewer } from "@/ui/components/LogsViewer";
 
 export default () => {
   const executions = useSeedExecutions();

@@ -1,4 +1,4 @@
-import { SeedExecution } from "../models/seed";
+import { SeedExecution } from "@/models/seed";
 
 export const BASE_URL = "http://127.0.0.1:40000";
 

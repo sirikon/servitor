@@ -1,6 +1,6 @@
+import { SeedExecution } from "@/models/seed";
+import { servitorApi } from "@/services/ServitorApi";
 import { useEffect, useState } from "react";
-import { SeedExecution } from "../../models/seed";
-import { servitorApi } from "../../services/ServitorApi";
 
 export const useSeedExecutions = () => {
   const [executionsIndex, setExecutionsIndex] = useState<
