@@ -40,6 +40,12 @@ export class SeedStore {
     }) || null;
   }
 
+  public getExecutions() {
+    return this.database.queryAll<SeedExecution>({
+      sql: "SELECT * FROM seed_executions",
+    });
+  }
+
   public scheduleExecution(opts: { id: number }) {
     const execution = this.database.queryOne<SeedExecution>({
       sql: "UPDATE seed_executions SET status = ? WHERE id = ? RETURNING *",

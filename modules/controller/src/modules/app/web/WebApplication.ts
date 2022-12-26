@@ -35,6 +35,8 @@ export class WebApplication {
             controller.enqueue(chunk);
           };
           this.seedStore.events.on("execution-updated", handler);
+          this.seedStore.getExecutions()
+            .forEach((execution) => handler({ execution }));
           close = () => this.seedStore.events.off("execution-updated", handler);
         },
         cancel: () => {
