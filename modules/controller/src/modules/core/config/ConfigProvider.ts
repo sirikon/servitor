@@ -1,5 +1,7 @@
+import { singleton } from "tsyringe";
 import { Config } from "@/core/config/model.ts";
 
+@singleton()
 export class ConfigProvider {
   public getConfig(): Promise<Config> {
     return Promise.resolve({
@@ -13,5 +15,3 @@ export class ConfigProvider {
     });
   }
 }
-
-export const configProvider = new ConfigProvider();

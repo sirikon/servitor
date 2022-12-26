@@ -1,9 +1,9 @@
 import EventEmitter from "eventemitter3";
-
-export type EventBus = EventEmitter<EventTypes>;
+import { container } from "tsyringe";
 
 export type EventTypes = {
   "shutdown": () => void;
 };
+export class EventBus extends EventEmitter<EventTypes> {}
 
-export const eventBus = new EventEmitter<EventTypes>();
+container.register<EventBus>(EventBus, { useValue: new EventBus() });

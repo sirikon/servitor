@@ -1,7 +1,9 @@
-import { Logger, logger } from "@/infrastructure/Logger.ts";
-import { SeedStore, seedStore } from "@/core/seed/SeedStore.ts";
-import { SeedLogStorage, seedLogStorage } from "@/core/seed/SeedLogStorage.ts";
+import { singleton } from "tsyringe";
+import { SeedStore } from "@/core/seed/SeedStore.ts";
+import { SeedLogStorage } from "@/core/seed/SeedLogStorage.ts";
+import { Logger } from "denox/logging/Logger.ts";
 
+@singleton()
 export class SeedActions {
   constructor(
     private logger: Logger,
@@ -26,9 +28,3 @@ export class SeedActions {
     this.seedStore.endExecution({ id, endDate: Date.now() });
   }
 }
-
-export const seedActions = new SeedActions(
-  logger,
-  seedStore,
-  seedLogStorage,
-);

@@ -36,6 +36,12 @@ def cli():
     def ctrl_cache():
         cmd('deno', 'cache',
             *CTRL_CONFIG,
+            CTRL_ENTRY)
+
+    @command
+    def ctrl_lock():
+        cmd('deno', 'cache',
+            *CTRL_CONFIG,
             '--lock-write',
             CTRL_ENTRY)
 

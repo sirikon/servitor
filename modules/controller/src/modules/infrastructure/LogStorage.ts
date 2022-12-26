@@ -1,5 +1,6 @@
 import { dirname, join } from "std/path/mod.ts";
-import { ensureDir } from "std/fs/ensure_dir.ts";
+import { ensureDir } from "std/fs/mod.ts";
+import { singleton } from "tsyringe";
 
 export type LogIdentifier = {
   category: string[];
@@ -15,6 +16,7 @@ export type ReadLogsResult = {
   stop: () => void;
 };
 
+@singleton()
 export class LogStorage {
   constructor() {}
 
@@ -88,5 +90,3 @@ export class LogStorage {
     return join("logs", ...id.category, `${id.name}.txt`);
   }
 }
-
-export const logStorage = new LogStorage();

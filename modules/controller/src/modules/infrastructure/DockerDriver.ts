@@ -1,3 +1,5 @@
+import { singleton } from "tsyringe";
+
 export type DockerBuildOpts = {
   image: string;
   dockerfile: string;
@@ -13,11 +15,12 @@ export type DockerRunOpts = {
   stderr: WritableStream<Uint8Array>;
 };
 
+@singleton()
 export class DockerDriver {
   constructor() {}
 
   public async build(opts: DockerBuildOpts) {
-    const cmd = new Deno.Command("docker", {
+    const proc = new Deno.Command("docker", {
       args: [
         "build",
         "-t",
@@ -30,31 +33,27 @@ export class DockerDriver {
       stdin: "null",
       stdout: "piped",
       stderr: "piped",
-    });
-    cmd.spawn();
+    }).spawn();
 
     await Promise.all([
-      cmd.stdout.pipeTo(opts.stdout),
-      cmd.stderr.pipeTo(opts.stderr),
+      proc.stdout.pipeTo(opts.stdout),
+      proc.stderr.pipeTo(opts.stderr),
     ]);
-    return await cmd.status;
+    return await proc.status;
   }
 
   public async run(opts: DockerRunOpts) {
-    const cmd = new Deno.Command("docker", {
+    const proc = new Deno.Command("docker", {
       args: ["run", "--rm", opts.image, ...opts.command],
       stdin: "null",
       stdout: "piped",
       stderr: "piped",
-    });
-    cmd.spawn();
+    }).spawn();
 
     await Promise.all([
-      cmd.stdout.pipeTo(opts.stdout),
-      cmd.stderr.pipeTo(opts.stderr),
+      proc.stdout.pipeTo(opts.stdout),
+      proc.stderr.pipeTo(opts.stderr),
     ]);
-    return await cmd.status;
+    return await proc.status;
   }
 }
-
-export const dockerDriver = new DockerDriver();

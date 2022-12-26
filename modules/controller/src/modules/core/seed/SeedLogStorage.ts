@@ -1,8 +1,10 @@
-import { LogStorage, logStorage } from "@/infrastructure/LogStorage.ts";
-import { SeedExecution, SeedStore, seedStore } from "@/core/seed/SeedStore.ts";
+import { singleton } from "tsyringe";
+import { LogStorage } from "@/infrastructure/LogStorage.ts";
+import { SeedExecution, SeedStore } from "@/core/seed/SeedStore.ts";
 
 const LOG_CATEGORY = ["seed"];
 
+@singleton()
 export class SeedLogStorage {
   constructor(
     private seedStore: SeedStore,
@@ -51,8 +53,3 @@ export class SeedLogStorage {
     return seedExecution.startDate != null && seedExecution.endDate == null;
   }
 }
-
-export const seedLogStorage = new SeedLogStorage(
-  seedStore,
-  logStorage,
-);

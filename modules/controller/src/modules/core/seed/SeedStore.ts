@@ -1,5 +1,6 @@
+import { singleton } from "tsyringe";
 import EventEmitter from "eventemitter3";
-import { Database, database } from "@/infrastructure/Database.ts";
+import { Database } from "@/infrastructure/Database.ts";
 
 export type SeedExecution = {
   id: number;
@@ -13,6 +14,7 @@ type SeedStoreEvents = {
   "execution-updated": (args: { execution: SeedExecution }) => void;
 };
 
+@singleton()
 export class SeedStore {
   constructor(
     public events: EventEmitter<SeedStoreEvents>,
@@ -76,8 +78,3 @@ CREATE TABLE IF NOT EXISTS seed_executions (
 );
 COMMIT;
 `;
-
-export const seedStore = new SeedStore(
-  new EventEmitter(),
-  database,
-);

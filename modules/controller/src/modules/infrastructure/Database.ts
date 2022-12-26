@@ -1,13 +1,16 @@
+import { singleton } from "tsyringe";
 import { Database as SqliteDatabase, RestBindParameters } from "sqlite3/mod.ts";
-import { EventBus, eventBus } from "@/core/events/EventBus.ts";
-import { Logger, logger } from "@/infrastructure/Logger.ts";
+import { EventBus } from "@/core/events/EventBus.ts";
+import { Logger } from "denox/logging/Logger.ts";
 
+@singleton()
 export class Database {
+  private db: SqliteDatabase;
   constructor(
     private logger: Logger,
     private eventBus: EventBus,
-    private db: SqliteDatabase,
   ) {
+    this.db = new SqliteDatabase("data.db");
     this.hookEvents();
   }
 
@@ -53,9 +56,3 @@ export class Database {
     });
   }
 }
-
-export const database = new Database(
-  logger,
-  eventBus,
-  new SqliteDatabase("data.db"),
-);
