@@ -1,19 +1,19 @@
 import React, { useCallback, useState } from "react";
-import { servitorApi } from "../../services/ServitorApi";
+import { BASE_URL, servitorApi } from "../../services/ServitorApi";
 import { LogsViewer } from "../components/LogsViewer";
+import { useSeedExecutions } from "../hooks/useSeedExecutions";
 
 export default () => {
-  const [execution, setExecution] = useState<{
-    id: number;
-    logsUrl: string;
-  } | null>(null);
+  const executions = useSeedExecutions();
+  const [visibleExecution, setVisibleExecution] = useState<number | null>(null);
 
   const onClick = useCallback(() => {
     (async () => {
-      setExecution(null);
-      setExecution(await servitorApi.executeSeed());
+      setVisibleExecution(null);
+      const execution = await servitorApi.executeSeed();
+      setVisibleExecution(execution.id);
     })();
-  }, [setExecution]);
+  }, [setVisibleExecution]);
 
   return (
     <>
@@ -22,8 +22,21 @@ export default () => {
           Execute
         </button>
       </p>
-      <p>{execution?.id || ""}</p>
-      {execution && <LogsViewer url={execution.logsUrl} />}
+      <ul>
+        {executions.map((e) => (
+          <li>
+            <button type="button" onClick={() => setVisibleExecution(e.id)}>
+              {e.id}[{e.status}]
+            </button>
+          </li>
+        ))}
+      </ul>
+      <p>{visibleExecution || ""}</p>
+      {visibleExecution && (
+        <LogsViewer
+          url={`${BASE_URL}/api/seed/executions/${visibleExecution}/logs`}
+        />
+      )}
     </>
   );
 };
