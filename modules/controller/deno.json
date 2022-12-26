@@ -1,4 +1,7 @@
 {
   "importMap": "import_map.json",
-  "lock": "lock.json"
+  "lock": "lock.json",
+  "compilerOptions": {
+    "emitDecoratorMetadata": true
+  }
 }

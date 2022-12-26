@@ -1,11 +1,11 @@
 import { ConfigProvider } from "@/core/config/ConfigProvider.ts";
-import { Logger } from "@/infrastructure/Logger.ts";
 import { SeedLogStorage } from "@/core/seed/SeedLogStorage.ts";
 import {
   DockerBuildOpts,
   DockerDriver,
 } from "@/infrastructure/DockerDriver.ts";
 import { SeedActions } from "@/core/seed/SeedActions.ts";
+import { Logger } from "denox/logging/Logger.ts";
 
 export class SeedRunner {
   private textEncoder = new TextEncoder();
@@ -62,8 +62,8 @@ export class SeedRunner {
       stdin: "null",
       stdout: "piped",
       stderr: "piped",
-    });
-    cmd.spawn();
+    }).spawn();
+
     await Promise.all([
       cmd.stdout.pipeTo(stdout),
       cmd.stderr.pipeTo(stderr),

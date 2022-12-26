@@ -1,12 +1,12 @@
-import {
-  ConfigProvider,
-  configProvider,
-} from "@/core/config/ConfigProvider.ts";
-import { WebApplication, webApplication } from "@/app/web/WebApplication.ts";
-import { logger } from "../../infrastructure/Logger.ts";
+import { singleton } from "tsyringe";
+import { ConfigProvider } from "@/core/config/ConfigProvider.ts";
+import { WebApplication } from "@/app/web/WebApplication.ts";
+import { Logger } from "denox/logging/Logger.ts";
 
+@singleton()
 export class WebServerDaemon {
   constructor(
+    private log: Logger,
     private configProvider: ConfigProvider,
     private webApplication: WebApplication,
   ) {}
@@ -18,7 +18,7 @@ export class WebServerDaemon {
       hostname: config.web.host,
       port: config.web.port,
     });
-    logger.info(`Listening on http://127.0.0.1:${config.web.port}`);
+    this.log.info(`Listening on http://127.0.0.1:${config.web.port}`);
 
     for await (const conn of listener) {
       (async () => {
@@ -46,11 +46,6 @@ export class WebServerDaemon {
     }
   }
 }
-
-export const webServerDaemon = new WebServerDaemon(
-  configProvider,
-  webApplication,
-);
 
 const isConnectionClosedError = (e: unknown) => {
   return e instanceof Deno.errors.Http &&

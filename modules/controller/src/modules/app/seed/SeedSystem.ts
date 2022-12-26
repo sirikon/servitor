@@ -1,13 +1,14 @@
+import { container, singleton } from "tsyringe";
 import { Mutex } from "async-mutex";
-import { configProvider } from "@/core/config/ConfigProvider.ts";
-import { seedLogStorage } from "@/core/seed/SeedLogStorage.ts";
-import { dockerDriver } from "@/infrastructure/DockerDriver.ts";
-import { logger } from "@/infrastructure/Logger.ts";
+import { ConfigProvider } from "@/core/config/ConfigProvider.ts";
+import { SeedLogStorage } from "@/core/seed/SeedLogStorage.ts";
+import { DockerDriver } from "@/infrastructure/DockerDriver.ts";
 import { SeedRunner } from "@/app/seed/SeedRunner.ts";
 import { SeedStore } from "@/core/seed/SeedStore.ts";
-import { seedStore } from "@/core/seed/SeedStore.ts";
-import { seedActions } from "@/core/seed/SeedActions.ts";
+import { SeedActions } from "@/core/seed/SeedActions.ts";
+import { Logger } from "denox/logging/Logger.ts";
 
+@singleton()
 export class SeedSystem {
   private executionMutex = new Mutex();
 
@@ -28,16 +29,14 @@ export class SeedSystem {
       await this.executionMutex.runExclusive(async () => {
         const runner = new SeedRunner(
           execution,
-          logger,
-          configProvider,
-          seedActions,
-          seedLogStorage,
-          dockerDriver,
+          container.resolve(Logger),
+          container.resolve(ConfigProvider),
+          container.resolve(SeedActions),
+          container.resolve(SeedLogStorage),
+          container.resolve(DockerDriver),
         );
         await runner.execute();
       });
     } catch (_: unknown) { /**/ }
   }
 }
-
-export const seedSystem = new SeedSystem(seedStore);
