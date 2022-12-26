@@ -1,59 +1,53 @@
 #!/usr/bin/env python3
+from os.path import abspath, join
 import os
 
-CTRL_DENO_ENTRY = os.path.abspath('controller/src/main.ts')
-CTRL_DENO_EXEC_FLAGS = ['-A', '--unstable']
-CTRL_DENO_CONFIG = ['--config', os.path.abspath('controller/deno.json')]
-CTRL_DENO_IMPORT_MAP = [
-    '--import-map',
-    os.path.abspath('controller/import_map.json')]
-CTRL_DENO_LOCK = ['--lock', os.path.abspath('controller/lock.json')]
+CTRL_HOME = abspath(join('modules', 'controller'))
+CTRL_ENTRY = join(CTRL_HOME, 'src', 'main.ts')
+CTRL_EXEC_FLAGS = ['-A', '--unstable']
+CTRL_CONFIG = ['--config', join(CTRL_HOME, 'deno.json')]
+
+UI_HOME = abspath(join('modules', 'ui'))
+
+DOCKER_HOME = abspath('docker')
+
+WORKDIR = abspath('workdir')
 
 
 def cli():
 
     @command
     def ui_start():
-        if not os.path.isdir('ui/node_modules'):
-            cmd('npm', 'i', cwd='ui')
-        cmd('npm', 'exec', 'teseract', 'serve', cwd='ui')
+        if not os.path.isdir(join(UI_HOME, 'node_modules')):
+            cmd('npm', 'i', cwd=UI_HOME)
+        cmd('npm', 'exec', 'teseract', 'serve', cwd=UI_HOME)
 
     @command
     def ctrl_start(*args):
-        cmd('mkdir', '-p', 'workdir')
+        cmd('mkdir', '-p', WORKDIR)
         cmd('deno', 'run',
-            *CTRL_DENO_EXEC_FLAGS,
-            *CTRL_DENO_CONFIG,
-            *CTRL_DENO_IMPORT_MAP,
-            *CTRL_DENO_LOCK,
-            CTRL_DENO_ENTRY, *args, cwd='workdir')
+            *CTRL_EXEC_FLAGS,
+            *CTRL_CONFIG,
+            '--cached-only',
+            CTRL_ENTRY,
+            *args, cwd=WORKDIR)
 
     @command
     def ctrl_cache():
         cmd('deno', 'cache',
-            *CTRL_DENO_CONFIG,
-            *CTRL_DENO_IMPORT_MAP,
-            *CTRL_DENO_LOCK,
-            CTRL_DENO_ENTRY)
-
-    @command
-    def ctrl_lock():
-        cmd('deno', 'cache',
-            *CTRL_DENO_CONFIG,
-            *CTRL_DENO_IMPORT_MAP,
-            *CTRL_DENO_LOCK,
+            *CTRL_CONFIG,
             '--lock-write',
-            CTRL_DENO_ENTRY)
+            CTRL_ENTRY)
 
     @command
     def fmt():
-        cmd('deno', 'fmt', *CTRL_DENO_CONFIG, 'controller/src')
-        cmd('npm', 'exec', 'teseract', 'lint', '--fix', cwd='ui')
+        cmd('deno', 'fmt', *CTRL_CONFIG, cwd=CTRL_HOME)
+        cmd('npm', 'exec', 'teseract', 'lint', '--fix', cwd=UI_HOME)
 
     @command
     def lint():
-        cmd('deno', 'lint', *CTRL_DENO_CONFIG, 'controller/src')
-        cmd('npm', 'exec', 'teseract', 'lint', cwd='ui')
+        cmd('deno', 'lint', *CTRL_CONFIG, cwd=CTRL_HOME)
+        cmd('npm', 'exec', 'teseract', 'lint', cwd=UI_HOME)
 
     @command
     def devenv():
@@ -63,12 +57,13 @@ def cli():
     def devenv_sh():
         compose('exec', 'controller', 'sh')
 
-
-def compose(*args):
-    cmd('docker', 'compose',
-        '-p', 'servitor-devenv',
-        '--project-directory', '.',
-        '-f', './docker/docker-compose.yml', *args)
+    @command
+    def compose(*args):
+        cmd('docker', 'compose',
+            '-p', 'servitor-devenv',
+            '--project-directory', abspath('.'),
+            '-f', join(DOCKER_HOME, 'docker-compose.yml'),
+            *args)
 
 
 

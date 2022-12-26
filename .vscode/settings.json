@@ -12,9 +12,5 @@
   "[python]": {
     "editor.defaultFormatter": "ms-python.python",
     "editor.tabSize": 4
-  },
-  "files.exclude": {
-    "controller": true,
-    "ui": true
   }
 }

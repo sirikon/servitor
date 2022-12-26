@@ -4,7 +4,6 @@
   "deno.enable": true,
   "deno.unstable": true,
   "deno.config": "./deno.json",
-  "deno.importMap": "./import_map.json",
   "[json]": {
     "editor.defaultFormatter": "denoland.vscode-deno"
   },
