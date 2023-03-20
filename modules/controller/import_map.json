@@ -2,13 +2,13 @@
   "imports": {
     "@/": "./src/modules/",
     "denox/": "./src/vendor/denox/lib/",
-    "std/": "https://deno.land/std@0.177.0/",
-    "sqlite3/": "https://deno.land/x/sqlite3@0.8.0/",
-    "oak/": "https://deno.land/x/oak@v11.1.0/",
-    "zod": "https://esm.sh/zod@3.20.3?pin=v106",
-    "eventemitter3": "https://esm.sh/eventemitter3@5.0.0?pin=v106",
-    "async-mutex": "https://esm.sh/async-mutex@0.4.0?pin=v106",
+    "std/": "https://deno.land/std@0.180.0/",
+    "sqlite3/": "https://deno.land/x/sqlite3@0.9.1/",
+    "oak/": "https://deno.land/x/oak@v12.1.0/",
+    "zod": "https://esm.sh/zod@3.21.4?pin=v111",
+    "eventemitter3": "https://esm.sh/eventemitter3@5.0.0?pin=v111",
+    "async-mutex": "https://esm.sh/async-mutex@0.4.0?pin=v111",
     "reflect_metadata/": "https://deno.land/x/reflect_metadata@v0.1.12/",
-    "tsyringe": "https://esm.sh/tsyringe@4.7.0?pin=v106"
+    "tsyringe": "https://esm.sh/tsyringe@4.7.0?pin=v111"
   }
 }
