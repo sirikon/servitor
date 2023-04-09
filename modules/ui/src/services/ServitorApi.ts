@@ -53,8 +53,9 @@ export class ServitorApi {
         ) {
           return;
         }
-        console.log(err);
+        console.error("Error on ServitorApi.subscribeToSeedExecutions fetch:", err);
       });
+
     return () => abortController.abort();
   }
 }
