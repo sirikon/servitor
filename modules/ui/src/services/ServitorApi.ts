@@ -38,7 +38,10 @@ export class ServitorApi {
       signal: abortController.signal,
     })
       .then(async (response) => {
-        const reader = response.body!.pipeThrough(textDecoder).getReader();
+        if (response.body == null) {
+          throw new Error("Response body is null");
+        }
+        const reader = response.body.pipeThrough(textDecoder).getReader();
         while (true) {
           const { value, done } = await reader.read();
           if (done) break;
