@@ -5,8 +5,26 @@ import http.server
 import signal
 import logging
 
+logging.basicConfig(
+    format="%(asctime)s %(levelname)-8s %(message)s",
+    level=logging.INFO,
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 
-class ServitorWebServer(http.server.BaseHTTPRequestHandler):
+
+def wait_shutdown():
+    mutex = threading.Lock()
+    mutex.acquire()
+
+    def shutdown_handler(sig, frame):
+        mutex.release()
+
+    signal.signal(signal.SIGINT, shutdown_handler)
+    signal.signal(signal.SIGTERM, shutdown_handler)
+    mutex.acquire()
+
+
+class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         self.reply_json(200, {"message": "hello world"})
 
@@ -20,38 +38,38 @@ class ServitorWebServer(http.server.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def log_message(self, format, *args):
+        logging.info(f"request address:{self.address_string()} {format % args}")
+
 
 def start_web_server():
-    httpd = http.server.HTTPServer(("", 8000), ServitorWebServer)
+    httpd = http.server.HTTPServer(("", 8000), HTTPRequestHandler)
     thread = threading.Thread(target=httpd.serve_forever, daemon=True)
     thread.start()
 
-    def shutdown_handler(sig, frame):
-        print("Sigterm received!")
-        httpd.shutdown()
-        print("Shutdown sent")
+    wait_shutdown()
 
-    handle_shutdown(shutdown_handler)
+    logging.info("shutting down http server")
+    httpd.shutdown()
     thread.join()
+    logging.info("http server shutted down")
 
 
-def handle_shutdown(handler):
-    signal.signal(signal.SIGINT, handler)
-    signal.signal(signal.SIGTERM, handler)
-
-
-if __name__ == "__main__":
-    ctx = multiprocessing.get_context("spawn")
-    processes = [ctx.Process(target=start_web_server, daemon=True)]
+def start():
+    multiprocessing.set_start_method("spawn")
+    processes = [multiprocessing.Process(target=start_web_server, daemon=True)]
 
     for process in processes:
         process.start()
 
-    def shutdown_handler(sig, frame):
-        for process in processes:
-            process.terminate()
+    wait_shutdown()
 
-    handle_shutdown(shutdown_handler)
+    for process in processes:
+        process.terminate()
 
     for process in processes:
         process.join()
+
+
+if __name__ == "__main__":
+    start()
