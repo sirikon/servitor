@@ -1,8 +1,8 @@
 import json
 import multiprocessing
+import threading
 import http.server
 import signal
-import sys
 
 
 class ServitorWebServer(http.server.BaseHTTPRequestHandler):
@@ -22,7 +22,24 @@ class ServitorWebServer(http.server.BaseHTTPRequestHandler):
 
 def start_web_server():
     httpd = http.server.HTTPServer(("", 8000), ServitorWebServer)
-    httpd.serve_forever()
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+
+    shutting_down = {"value": False}
+
+    def sigterm_handler(sig, frame):
+        if shutting_down["value"]:
+            return
+        shutting_down["value"] = True
+        print("Sigterm received!")
+        httpd.shutdown()
+        print("Shutdown sent")
+        thread.join()
+        print("Thread ended")
+
+    signal.signal(signal.SIGINT, sigterm_handler)
+    signal.signal(signal.SIGTERM, sigterm_handler)
+    signal.pause()
 
 
 def spawn_web_server_process():
@@ -36,10 +53,10 @@ if __name__ == "__main__":
     web_server_process = spawn_web_server_process()
 
     def signal_handler(sig, frame):
-        print("You pressed Ctrl+C!")
         web_server_process.terminate()
         web_server_process.join()
         web_server_process.close()
 
     signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
     signal.pause()
