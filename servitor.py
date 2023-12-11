@@ -3,6 +3,7 @@ import multiprocessing
 import threading
 import http.server
 import signal
+import logging
 
 
 class ServitorWebServer(http.server.BaseHTTPRequestHandler):
@@ -25,38 +26,32 @@ def start_web_server():
     thread = threading.Thread(target=httpd.serve_forever, daemon=True)
     thread.start()
 
-    shutting_down = {"value": False}
-
-    def sigterm_handler(sig, frame):
-        if shutting_down["value"]:
-            return
-        shutting_down["value"] = True
+    def shutdown_handler(sig, frame):
         print("Sigterm received!")
         httpd.shutdown()
         print("Shutdown sent")
-        thread.join()
-        print("Thread ended")
 
-    signal.signal(signal.SIGINT, sigterm_handler)
-    signal.signal(signal.SIGTERM, sigterm_handler)
-    signal.pause()
+    handle_shutdown(shutdown_handler)
+    thread.join()
 
 
-def spawn_web_server_process():
-    p = multiprocessing.Process(target=start_web_server, daemon=True)
-    p.start()
-    return p
+def handle_shutdown(handler):
+    signal.signal(signal.SIGINT, handler)
+    signal.signal(signal.SIGTERM, handler)
 
 
 if __name__ == "__main__":
-    multiprocessing.set_start_method("spawn")
-    web_server_process = spawn_web_server_process()
+    ctx = multiprocessing.get_context("spawn")
+    processes = [ctx.Process(target=start_web_server, daemon=True)]
 
-    def signal_handler(sig, frame):
-        web_server_process.terminate()
-        web_server_process.join()
-        web_server_process.close()
+    for process in processes:
+        process.start()
 
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
-    signal.pause()
+    def shutdown_handler(sig, frame):
+        for process in processes:
+            process.terminate()
+
+    handle_shutdown(shutdown_handler)
+
+    for process in processes:
+        process.join()
