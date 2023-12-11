@@ -1,8 +1,11 @@
 import json
-from http.server import HTTPServer, BaseHTTPRequestHandler
+import multiprocessing
+import http.server
+import signal
+import sys
 
 
-class ServitorWebServer(BaseHTTPRequestHandler):
+class ServitorWebServer(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         self.reply_json(200, {"message": "hello world"})
 
@@ -17,8 +20,26 @@ class ServitorWebServer(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
 
-httpd = HTTPServer(("", 8000), ServitorWebServer)
-try:
+def start_web_server():
+    httpd = http.server.HTTPServer(("", 8000), ServitorWebServer)
     httpd.serve_forever()
-except KeyboardInterrupt:
-    httpd.shutdown()
+
+
+def spawn_web_server_process():
+    p = multiprocessing.Process(target=start_web_server, daemon=True)
+    p.start()
+    return p
+
+
+if __name__ == "__main__":
+    multiprocessing.set_start_method("spawn")
+    web_server_process = spawn_web_server_process()
+
+    def signal_handler(sig, frame):
+        print("You pressed Ctrl+C!")
+        web_server_process.terminate()
+        web_server_process.join()
+        web_server_process.close()
+
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.pause()
