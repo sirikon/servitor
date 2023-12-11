@@ -1,3 +1,0 @@
-[submodule "denox"]
-	path = modules/controller/src/vendor/denox
-	url = ../denox.git

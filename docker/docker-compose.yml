@@ -1,7 +1,0 @@
-services:
-  controller:
-    privileged: true
-    build:
-      dockerfile: ./docker/Dockerfile
-    volumes:
-      - ./src:/root/servitor/src:ro
