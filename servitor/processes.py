@@ -6,6 +6,7 @@ import threading
 
 from servitor.logging import log
 from servitor.http import HTTPRequestHandler
+from servitor.shared_memory import set_job_queue
 
 
 def handle_shutdown(handler):
@@ -18,6 +19,7 @@ def handle_shutdown(handler):
 
 
 def start_web_server(job_queue: multiprocessing.Queue):
+    set_job_queue(job_queue)
     log.info("starting web server")
     httpd = http.server.HTTPServer(("", 8000), HTTPRequestHandler)
     thread = threading.Thread(target=httpd.serve_forever, args=(1,), daemon=True)
@@ -33,6 +35,7 @@ def start_web_server(job_queue: multiprocessing.Queue):
 
 
 def start_job_worker(job_queue: multiprocessing.Queue):
+    set_job_queue(job_queue)
     log.info("starting job worker")
     keep_alive = True
 

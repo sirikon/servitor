@@ -4,6 +4,7 @@ import re
 from typing import Callable
 
 from servitor.logging import log
+from servitor.shared_memory import get_job_queue
 
 routes: dict[str, list[tuple[re.Pattern, Callable]]] = {}
 
@@ -32,6 +33,7 @@ def route(method: str, pattern: re.Pattern):
 
 @route("GET", r"^\/api/jobs/(?P<name>\w+)$")
 def hello(ctx: http.server.BaseHTTPRequestHandler, name):
+    get_job_queue().put("hehe")
     reply_json(ctx, 200, {"name": name})
 
 

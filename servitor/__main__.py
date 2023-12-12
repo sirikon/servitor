@@ -2,6 +2,7 @@ import multiprocessing
 
 from servitor.logging import log
 from servitor.processes import handle_shutdown, start_job_worker, start_web_server
+from servitor.shared_memory import set_job_queue
 
 
 def start():
@@ -9,6 +10,7 @@ def start():
     multiprocessing.set_start_method("spawn")
 
     job_queue = multiprocessing.Queue()
+    set_job_queue(job_queue)
 
     processes = [
         multiprocessing.Process(target=start_web_server, args=(job_queue,), daemon=True)
