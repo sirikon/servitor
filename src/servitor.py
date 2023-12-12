@@ -39,7 +39,7 @@ def http_request_handler(job_queue: multiprocessing.Queue):
             self.wfile.write(body)
 
         def log_message(self, format, *args):
-            logging.info(f"request address:{self.address_string()} {format % args}")
+            logging.debug(f"request address:{self.address_string()} {format % args}")
 
     return HTTPRequestHandler
 
