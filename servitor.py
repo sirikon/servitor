@@ -4,24 +4,22 @@ import threading
 import http.server
 import signal
 import logging
+import os
 
 logging.basicConfig(
-    format="%(asctime)s %(levelname)-8s %(message)s",
+    format="%(asctime)s %(levelname)-8s PID:%(process)d %(message)s",
     level=logging.INFO,
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 
 
-def wait_shutdown():
-    mutex = threading.Lock()
-    mutex.acquire()
-
+def handle_shutdown(handler):
     def shutdown_handler(sig, frame):
-        mutex.release()
+        logging.info(f"received {signal.Signals(sig).name}")
+        handler()
 
     signal.signal(signal.SIGINT, shutdown_handler)
     signal.signal(signal.SIGTERM, shutdown_handler)
-    mutex.acquire()
 
 
 class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
@@ -43,32 +41,39 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
 
 
 def start_web_server():
+    logging.info("starting web server")
     httpd = http.server.HTTPServer(("", 8000), HTTPRequestHandler)
     thread = threading.Thread(target=httpd.serve_forever, daemon=True)
     thread.start()
 
-    wait_shutdown()
+    def shutdown_handler():
+        logging.info("asking web server to shut down")
+        httpd.shutdown()
 
-    logging.info("shutting down http server")
-    httpd.shutdown()
+    handle_shutdown(shutdown_handler)
     thread.join()
     logging.info("http server shutted down")
 
 
 def start():
+    logging.info("starting")
     multiprocessing.set_start_method("spawn")
     processes = [multiprocessing.Process(target=start_web_server, daemon=True)]
 
     for process in processes:
         process.start()
 
-    wait_shutdown()
+    def shutdown_handler():
+        logging.info("shutting down everything")
+        for process in processes:
+            process.terminate()
 
-    for process in processes:
-        process.terminate()
+    handle_shutdown(shutdown_handler)
 
     for process in processes:
         process.join()
+
+    logging.info("shutting down")
 
 
 if __name__ == "__main__":
