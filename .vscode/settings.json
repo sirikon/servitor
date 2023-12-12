@@ -1,6 +1,5 @@
 {
     "editor.detectIndentation": false,
-    "editor.tabSize": 4,
     "[json]": {
         "editor.defaultFormatter": "vscode.json-language-features",
         "files.insertFinalNewline": true
