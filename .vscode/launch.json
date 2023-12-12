@@ -1,0 +1,11 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Servitor",
+            "type": "python",
+            "request": "launch",
+            "module": "servitor",
+        }
+    ]
+}
