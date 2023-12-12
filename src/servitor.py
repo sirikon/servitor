@@ -25,8 +25,8 @@ def handle_shutdown(handler):
 def http_request_handler(job_queue: multiprocessing.Queue):
     class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
         def do_GET(self):
-            job_queue.put("henlo")
-            self.reply_json(200, {"message": "hello world"})
+            job_queue.put(self.path)
+            self.reply_json(200, {"path": self.path})
 
         def reply_json(self, code: int, body: object):
             self.reply(code, "application/json", json.dumps(body).encode())
