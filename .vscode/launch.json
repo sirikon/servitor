@@ -6,6 +6,7 @@
             "type": "python",
             "request": "launch",
             "module": "servitor",
+            "cwd": "${workspaceFolder}/src"
         }
     ]
 }

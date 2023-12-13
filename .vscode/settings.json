@@ -13,5 +13,8 @@
     },
     "files.exclude": {
         "**/__pycache__": true
-    }
+    },
+    "python.analysis.extraPaths": [
+        "./src"
+    ],
 }
