@@ -5,7 +5,7 @@ from typing import Callable
 from urllib.parse import urlparse, parse_qs
 
 from servitor.logging import log
-from servitor.shared_memory import get_job_queue
+from servitor.shared_memory import shared_memory
 
 routes: dict[str, list[tuple[re.Pattern, Callable]]] = {}
 
@@ -41,7 +41,7 @@ def hello(ctx: http.server.BaseHTTPRequestHandler):
 @route("POST", r"^\/api/jobs/run$")
 def run(ctx: http.server.BaseHTTPRequestHandler):
     query = parse_qs(urlparse(ctx.path).query)
-    get_job_queue().put(query["path"][0])
+    shared_memory.job_queue.put(query["path"][0])
     reply_json(ctx, 200, {"done": True, "query": query})
 
 

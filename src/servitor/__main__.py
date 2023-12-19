@@ -2,23 +2,27 @@ import multiprocessing
 
 from servitor.logging import log
 from servitor.processes import handle_shutdown, start_job_worker, start_web_server
-from servitor.shared_memory import set_job_queue
+from servitor.shared_memory import shared_memory
 
 
 def start():
     log.info("starting")
     multiprocessing.set_start_method("spawn")
 
+    state_lock = multiprocessing.Lock()
     job_queue = multiprocessing.Queue()
-    set_job_queue(job_queue)
+    shared_memory.state_lock = state_lock
+    shared_memory.job_queue = job_queue
 
     processes = [
-        multiprocessing.Process(target=start_web_server, args=(job_queue,), daemon=True)
+        multiprocessing.Process(
+            target=start_web_server, args=(job_queue, state_lock), daemon=True
+        )
     ]
     for _ in range(max(multiprocessing.cpu_count(), 2)):
         processes.append(
             multiprocessing.Process(
-                target=start_job_worker, args=(job_queue,), daemon=True
+                target=start_job_worker, args=(job_queue, state_lock), daemon=True
             )
         )
 

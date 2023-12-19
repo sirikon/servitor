@@ -1,13 +1,9 @@
-import multiprocessing
+from multiprocessing import Queue, Lock
 
 
-_job_queue = None
+class _SharedMemory:
+    state_lock: Lock = None
+    job_queue: Queue = None
 
 
-def set_job_queue(jq: multiprocessing.Queue):
-    global _job_queue
-    _job_queue = jq
-
-
-def get_job_queue():
-    return _job_queue
+shared_memory = _SharedMemory()
