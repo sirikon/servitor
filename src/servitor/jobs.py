@@ -94,9 +94,10 @@ def run_job(job_id: str):
                 stdout=log,
                 stderr=log,
                 stdin=DEVNULL,
+                check=True,
             )
     except Exception as ex:
-        set_job_execution_status(job_id, execution_id, "failed")
+        set_job_execution_status(job_id, execution_id, "failure")
         raise ex
     else:
-        set_job_execution_status(job_id, execution_id, "done")
+        set_job_execution_status(job_id, execution_id, "success")
