@@ -40,6 +40,12 @@ def hello(ctx: http.server.BaseHTTPRequestHandler):
     reply_json(ctx, 200, {"path": ctx.path, "query": query})
 
 
+@route("POST", r"^\/api/jobs/run$")
+def run(ctx: http.server.BaseHTTPRequestHandler):
+    query = parse_qs(urlparse(ctx.path).query)
+    reply_json(ctx, 200, {"done": True, "query": query})
+
+
 def handle_request(ctx: http.server.BaseHTTPRequestHandler, method: str):
     routing_path = urlparse(ctx.path).path
     try:
@@ -57,6 +63,9 @@ def handle_request(ctx: http.server.BaseHTTPRequestHandler, method: str):
 class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         handle_request(self, "GET")
+
+    def do_POST(self):
+        handle_request(self, "POST")
 
     def log_message(self, format, *args):
         log.debug(f"request address:{self.address_string()} {format % args}")
