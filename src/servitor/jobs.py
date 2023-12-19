@@ -1,6 +1,6 @@
 from subprocess import run, DEVNULL
 from os import getcwd, makedirs
-from os.path import join, exists
+from os.path import join, exists, dirname
 
 from servitor.shared_memory import shared_memory
 
@@ -24,7 +24,7 @@ class JobPathsBuilder:
 
     @property
     def last_execution_file(self):
-        return join(self.executions_dir, "last_execution")
+        return join(self.executions_dir, "last_execution.txt")
 
 
 class JobExecutionPathsBuilder:
@@ -35,6 +35,10 @@ class JobExecutionPathsBuilder:
     @property
     def execution_dir(self):
         return join(self._job_paths.executions_dir, self._execution_id)
+
+    @property
+    def status_file(self):
+        return join(self.execution_dir, "status.txt")
 
     @property
     def logs_dir(self):
@@ -66,17 +70,32 @@ def create_job_execution(job_id: str):
         shared_memory.state_lock.release()
 
 
+def set_job_execution_status(job_id: str, execution_id: str, status: str):
+    job_execution_paths = JobExecutionPathsBuilder(
+        JobPathsBuilder(getcwd(), job_id), execution_id
+    )
+    makedirs(dirname(job_execution_paths.status_file), exist_ok=True)
+    with open(job_execution_paths.status_file, "w") as f:
+        f.write(status)
+
+
 def run_job(job_id: str):
     execution_id = create_job_execution(job_id)
     job_paths = JobPathsBuilder(getcwd(), job_id)
     job_execution_paths = JobExecutionPathsBuilder(job_paths, execution_id)
 
-    makedirs(job_execution_paths.logs_dir, exist_ok=True)
-    with open(job_execution_paths.main_log_file, "w") as log:
-        run(
-            [job_paths.run_file],
-            cwd=job_paths.home,
-            stdout=log,
-            stderr=log,
-            stdin=DEVNULL,
-        )
+    try:
+        set_job_execution_status(job_id, execution_id, "running")
+        makedirs(job_execution_paths.logs_dir, exist_ok=True)
+        with open(job_execution_paths.main_log_file, "w") as log:
+            run(
+                [job_paths.run_file],
+                cwd=job_paths.home,
+                stdout=log,
+                stderr=log,
+                stdin=DEVNULL,
+            )
+    except Exception as ex:
+        set_job_execution_status(job_id, execution_id, "failed")
+    else:
+        set_job_execution_status(job_id, execution_id, "done")
