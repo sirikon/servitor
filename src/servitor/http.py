@@ -27,13 +27,13 @@ def route(method: str, pattern: re.Pattern):
     def decorator(func):
         if method not in routes:
             routes[method] = []
-        routes[method].append((re.compile(rf"^\/{pattern}$"), func))
+        routes[method].append((re.compile(pattern), func))
         return func
 
     return decorator
 
 
-@route("GET", r"api/jobs/get")
+@route("GET", r"^\/api/jobs/get$")
 def hello(ctx: http.server.BaseHTTPRequestHandler):
     get_job_queue().put(ctx.path)
     query = parse_qs(urlparse(ctx.path).query)
