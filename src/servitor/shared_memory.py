@@ -10,5 +10,4 @@ def set_job_queue(jq: multiprocessing.Queue):
 
 
 def get_job_queue():
-    global _job_queue
     return _job_queue
