@@ -55,7 +55,7 @@ def start_job_worker(
     while keep_alive:
         try:
             data = job_queue.get(timeout=1)
-            log.info("received data: " + data)
+            log.info("running job: " + data)
             run_job(data)
         except queue.Empty:
             pass
