@@ -35,7 +35,6 @@ def route(method: str, pattern: re.Pattern):
 
 @route("GET", r"^\/api/jobs/get$")
 def hello(ctx: http.server.BaseHTTPRequestHandler):
-    get_job_queue().put(ctx.path)
     query = parse_qs(urlparse(ctx.path).query)
     reply_json(ctx, 200, {"path": ctx.path, "query": query})
 
@@ -43,6 +42,7 @@ def hello(ctx: http.server.BaseHTTPRequestHandler):
 @route("POST", r"^\/api/jobs/run$")
 def run(ctx: http.server.BaseHTTPRequestHandler):
     query = parse_qs(urlparse(ctx.path).query)
+    get_job_queue().put(query["path"][0])
     reply_json(ctx, 200, {"done": True, "query": query})
 
 

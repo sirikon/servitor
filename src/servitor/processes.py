@@ -3,6 +3,7 @@ import multiprocessing
 import queue
 import signal
 import threading
+from servitor.jobs import run_job
 
 from servitor.logging import log
 from servitor.http import HTTPRequestHandler
@@ -49,6 +50,7 @@ def start_job_worker(job_queue: multiprocessing.Queue):
         try:
             data = job_queue.get(timeout=1)
             log.info("received data: " + data)
+            run_job(data)
         except queue.Empty:
             pass
 
