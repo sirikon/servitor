@@ -21,7 +21,7 @@ def handle_shutdown(handler):
 def start_web_server(job_queue: multiprocessing.Queue):
     set_job_queue(job_queue)
     log.info("starting web server")
-    httpd = http.server.HTTPServer(("", 8000), HTTPRequestHandler)
+    httpd = http.server.HTTPServer(("", 40000), HTTPRequestHandler)
     thread = threading.Thread(target=httpd.serve_forever, args=(1,), daemon=True)
     thread.start()
 
