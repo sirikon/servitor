@@ -46,7 +46,7 @@ class JobExecutionPathsBuilder:
 
     @property
     def main_log_file(self):
-        return join(self.logs_dir, "main.log")
+        return join(self.logs_dir, "main.txt")
 
 
 def create_job_execution(job_id: str):
