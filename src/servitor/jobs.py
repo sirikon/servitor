@@ -97,5 +97,6 @@ def run_job(job_id: str):
             )
     except Exception as ex:
         set_job_execution_status(job_id, execution_id, "failed")
+        raise ex
     else:
         set_job_execution_status(job_id, execution_id, "done")
