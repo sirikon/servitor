@@ -1,7 +1,9 @@
 import http.server
+import urllib
 import json
 import re
 from typing import Callable
+from urllib.parse import urlparse, parse_qs
 
 from servitor.logging import log
 from servitor.shared_memory import get_job_queue
@@ -25,22 +27,24 @@ def route(method: str, pattern: re.Pattern):
     def decorator(func):
         if method not in routes:
             routes[method] = []
-        routes[method].append((re.compile(pattern), func))
+        routes[method].append((re.compile(rf"^\/{pattern}$"), func))
         return func
 
     return decorator
 
 
-@route("GET", r"^\/api/jobs/(?P<name>\w+)$")
-def hello(ctx: http.server.BaseHTTPRequestHandler, name):
-    get_job_queue().put("hehe")
-    reply_json(ctx, 200, {"name": name})
+@route("GET", r"api/jobs/get")
+def hello(ctx: http.server.BaseHTTPRequestHandler):
+    get_job_queue().put(ctx.path)
+    query = parse_qs(urlparse(ctx.path).query)
+    reply_json(ctx, 200, {"path": ctx.path, "query": query})
 
 
 def handle_request(ctx: http.server.BaseHTTPRequestHandler, method: str):
+    routing_path = urlparse(ctx.path).path
     try:
         for pattern, func in routes[method]:
-            match = pattern.match(ctx.path)
+            match = pattern.match(routing_path)
             if match:
                 func(ctx, **match.groupdict())
                 return
