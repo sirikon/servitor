@@ -1,6 +1,9 @@
 from subprocess import run, DEVNULL
 from os import getcwd, makedirs, listdir
-from os.path import join, exists, dirname, isdir
+from os.path import join, exists, dirname, isdir, relpath
+from glob import glob
+from stat import S_IXUSR
+from pathlib import Path
 
 from servitor.shared_memory import shared_memory
 
@@ -47,6 +50,20 @@ class JobExecutionPathsBuilder:
     @property
     def main_log_file(self):
         return join(self.logs_dir, "main.txt")
+
+
+def get_jobs(path: str):
+    def gen():
+        for filename in glob(
+            join(getcwd(), "config", "jobs", path, "**/run"), recursive=True
+        ):
+            if Path(filename).stat().st_mode & S_IXUSR:
+                job_id = dirname(
+                    relpath(filename, join(getcwd(), "config", "jobs", path))
+                )
+                yield {"job_id": job_id}
+
+    return list(gen())
 
 
 def create_job_execution(job_id: str):
