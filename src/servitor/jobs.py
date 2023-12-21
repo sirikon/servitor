@@ -1,6 +1,6 @@
 from subprocess import run, DEVNULL
-from os import getcwd, makedirs
-from os.path import join, exists, dirname
+from os import getcwd, makedirs, listdir
+from os.path import join, exists, dirname, isdir
 
 from servitor.shared_memory import shared_memory
 
@@ -70,6 +70,13 @@ def create_job_execution(job_id: str):
         shared_memory.state_lock.release()
 
 
+def get_job_execution_status(job_id: str, execution_id: str):
+    job_paths = JobPathsBuilder(getcwd(), job_id)
+    job_execution_paths = JobExecutionPathsBuilder(job_paths, execution_id)
+    with open(job_execution_paths.status_file, "r") as f:
+        return f.read()
+
+
 def set_job_execution_status(job_id: str, execution_id: str, status: str):
     job_execution_paths = JobExecutionPathsBuilder(
         JobPathsBuilder(getcwd(), job_id), execution_id
@@ -101,3 +108,29 @@ def run_job(job_id: str):
         raise ex
     else:
         set_job_execution_status(job_id, execution_id, "success")
+
+
+def get_job_executions(job_id: str):
+    def gen():
+        job_paths = JobPathsBuilder(getcwd(), job_id)
+        for item in listdir(job_paths.executions_dir):
+            if isdir(join(job_paths.executions_dir, item)):
+                execution_id = item
+                yield get_job_execution(job_id, execution_id)
+
+    result = sorted(list(gen()), key=lambda x: int(x["execution_id"]), reverse=True)
+    return result
+
+
+def get_job_execution(job_id: str, execution_id: str):
+    return {
+        "execution_id": execution_id,
+        "status": get_job_execution_status(job_id, execution_id),
+    }
+
+
+def get_job_execution_log(job_id: str, execution_id: str):
+    job_paths = JobPathsBuilder(getcwd(), job_id)
+    job_execution_paths = JobExecutionPathsBuilder(job_paths, execution_id)
+    with open(job_execution_paths.main_log_file, "br") as f:
+        return f.read()

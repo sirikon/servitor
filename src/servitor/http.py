@@ -3,6 +3,7 @@ import json
 import re
 from typing import Callable
 from urllib.parse import urlparse, parse_qs
+from servitor.jobs import get_job_execution, get_job_execution_log, get_job_executions
 
 from servitor.logging import log
 from servitor.shared_memory import shared_memory
@@ -32,17 +33,43 @@ def route(method: str, pattern: re.Pattern):
     return decorator
 
 
-@route("GET", r"^\/api/jobs/get$")
-def hello(ctx: http.server.BaseHTTPRequestHandler):
-    query = parse_qs(urlparse(ctx.path).query)
-    reply_json(ctx, 200, {"path": ctx.path, "query": query})
-
-
 @route("POST", r"^\/api/jobs/run$")
-def run(ctx: http.server.BaseHTTPRequestHandler):
+def jobs_run(ctx: http.server.BaseHTTPRequestHandler):
     query = parse_qs(urlparse(ctx.path).query)
-    shared_memory.job_queue.put(query["path"][0])
-    reply_json(ctx, 200, {"done": True, "query": query})
+    shared_memory.job_queue.put(query["job_id"][0])
+    reply_json(ctx, 200, {"status": "success"})
+
+
+@route("GET", r"^\/api/jobs/executions/get_list$")
+def jobs_executions_get_list(ctx: http.server.BaseHTTPRequestHandler):
+    query = parse_qs(urlparse(ctx.path).query)
+    reply_json(
+        ctx, 200, {"status": "success", "data": get_job_executions(query["job_id"][0])}
+    )
+
+
+@route("GET", r"^\/api/jobs/executions/get$")
+def jobs_executions_get(ctx: http.server.BaseHTTPRequestHandler):
+    query = parse_qs(urlparse(ctx.path).query)
+    reply_json(
+        ctx,
+        200,
+        {
+            "status": "success",
+            "data": get_job_execution(query["job_id"][0], query["execution_id"][0]),
+        },
+    )
+
+
+@route("GET", r"^\/api/jobs/executions/logs/get$")
+def jobs_executions_logs_get(ctx: http.server.BaseHTTPRequestHandler):
+    query = parse_qs(urlparse(ctx.path).query)
+    reply(
+        ctx,
+        200,
+        "text/plain",
+        get_job_execution_log(query["job_id"][0], query["execution_id"][0]),
+    )
 
 
 def handle_request(ctx: http.server.BaseHTTPRequestHandler, method: str):
