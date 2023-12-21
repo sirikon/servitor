@@ -1,6 +1,9 @@
 import http.server
 import json
 import re
+from os import sep
+from mimetypes import guess_type
+from os.path import join, normpath, dirname
 from typing import Callable
 from urllib.parse import urlparse, parse_qs
 from servitor.jobs import (
@@ -18,7 +21,7 @@ routes: dict[str, list[tuple[re.Pattern, Callable]]] = {}
 
 def reply(ctx: http.server.BaseHTTPRequestHandler, code: int, type: str, body: bytes):
     ctx.send_response(code)
-    ctx.send_header("Content-Type", type)
+    ctx.send_header("Content-Type", f"{type}; charset=utf-8")
     ctx.send_header("Content-Length", str(len(body)))
     ctx.end_headers()
     ctx.wfile.write(body)
@@ -75,6 +78,28 @@ def jobs_executions_logs_get(ctx: http.server.BaseHTTPRequestHandler):
         "text/plain",
         get_job_execution_log(query["job_id"][0], query["execution_id"][0]),
     )
+
+
+@route("GET", r"^\/ui$")
+def serve_ui(ctx: http.server.BaseHTTPRequestHandler):
+    ctx.send_response(302)
+    ctx.send_header("Location", "/ui/")
+    ctx.end_headers()
+
+
+@route("GET", r"^\/ui/(?P<rest>.*)")
+def serve_ui(ctx: http.server.BaseHTTPRequestHandler, rest: str = "index.html"):
+    if rest == "":
+        rest = "index.html"
+    base_path = normpath(join(dirname(__file__), "..", "ui"))
+    ui_file_path = normpath(join(base_path, rest))
+
+    if not ui_file_path.startswith(base_path + sep):
+        reply(ctx, 404, "text/plain", b"")
+        return
+
+    with open(ui_file_path, "br") as f:
+        reply(ctx, 200, guess_type(ui_file_path)[0], f.read())
 
 
 def handle_request(ctx: http.server.BaseHTTPRequestHandler, method: str):

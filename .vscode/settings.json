@@ -11,6 +11,14 @@
     "[python]": {
         "editor.defaultFormatter": "ms-python.black-formatter"
     },
+    "[html]": {
+        "editor.defaultFormatter": "vscode.html-language-features",
+        "files.insertFinalNewline": true
+    },
+    "[css]": {
+        "editor.defaultFormatter": "vscode.css-language-features",
+        "files.insertFinalNewline": true
+    },
     "files.exclude": {
         "**/__pycache__": true
     },
