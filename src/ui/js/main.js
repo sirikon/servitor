@@ -17,9 +17,11 @@ class JobListComponent extends Component {
     }
 
     render() {
-        return h('ul', {}, this.jobs.map(j => h('li', {}, [
-            h('a', { href: '#' }, j.job_id)
-        ])));
+        return h('ul', {}, this.jobs.map(j =>
+            h('li', {}, [
+                h('a', { href: '#' }, j.job_id)
+            ])
+        ));
     }
 }
 
