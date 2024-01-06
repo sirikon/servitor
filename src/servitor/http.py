@@ -7,6 +7,7 @@ from os.path import join, normpath, dirname
 from typing import Callable
 from urllib.parse import urlparse, parse_qs
 from servitor.jobs import (
+    create_job_execution,
     get_job_execution,
     get_job_execution_log,
     get_job_executions,
@@ -14,7 +15,7 @@ from servitor.jobs import (
 )
 
 from servitor.logging import log
-from servitor.shared_memory import shared_memory
+from servitor.shared_memory import JobQueueItem, shared_memory
 
 routes: dict[str, list[tuple[re.Pattern, Callable]]] = {}
 
@@ -51,7 +52,9 @@ def jobs_get_list(ctx: http.server.BaseHTTPRequestHandler):
 @route("POST", r"^\/api/jobs/run$")
 def jobs_run(ctx: http.server.BaseHTTPRequestHandler):
     query = parse_qs(urlparse(ctx.path).query)
-    shared_memory.job_queue.put(query["job_id"][0])
+    job_id = query["job_id"][0]
+    execution_id = create_job_execution(job_id)
+    shared_memory.job_queue.put(JobQueueItem(job_id, execution_id))
     reply_json(ctx, 200, {"status": "success"})
 
 

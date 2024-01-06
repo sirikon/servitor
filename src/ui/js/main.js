@@ -49,6 +49,7 @@ class JobViewComponent extends Component {
 
     async onClickRun() {
         await fetch('/api/jobs/run?job_id=' + this.getJobId(), { method: 'POST' })
+        await this.fetchJobInfo()
         this.refresh();
     }
 

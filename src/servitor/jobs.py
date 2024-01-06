@@ -69,20 +69,26 @@ def get_jobs(path: str):
 def create_job_execution(job_id: str):
     shared_memory.state_lock.acquire()
     try:
-        job_paths = JobPathsBuilder(getcwd(), job_id)
-        makedirs(job_paths.executions_dir, exist_ok=True)
-        if exists(job_paths.last_execution_file):
-            with open(job_paths.last_execution_file, "r+") as f:
-                last_execution = int(f.read())
-                new_execution = str(last_execution + 1)
-                f.seek(0)
-                f.write(new_execution)
-            return new_execution
-        else:
-            first_execution = "1"
-            with open(job_paths.last_execution_file, "w") as f:
-                f.write(first_execution)
+
+        def creation():
+            job_paths = JobPathsBuilder(getcwd(), job_id)
+            makedirs(job_paths.executions_dir, exist_ok=True)
+            if exists(job_paths.last_execution_file):
+                with open(job_paths.last_execution_file, "r+") as f:
+                    last_execution = int(f.read())
+                    new_execution = str(last_execution + 1)
+                    f.seek(0)
+                    f.write(new_execution)
+                return new_execution
+            else:
+                first_execution = "1"
+                with open(job_paths.last_execution_file, "w") as f:
+                    f.write(first_execution)
             return first_execution
+
+        execution_id = creation()
+        set_job_execution_status(job_id, execution_id, "created")
+        return execution_id
     finally:
         shared_memory.state_lock.release()
 
@@ -103,8 +109,7 @@ def set_job_execution_status(job_id: str, execution_id: str, status: str):
         f.write(status)
 
 
-def run_job(job_id: str):
-    execution_id = create_job_execution(job_id)
+def run_job(job_id: str, execution_id: str):
     job_paths = JobPathsBuilder(getcwd(), job_id)
     job_execution_paths = JobExecutionPathsBuilder(job_paths, execution_id)
 
@@ -130,6 +135,8 @@ def run_job(job_id: str):
 def get_job_executions(job_id: str):
     def gen():
         job_paths = JobPathsBuilder(getcwd(), job_id)
+        if not exists(job_paths.executions_dir):
+            return
         for item in listdir(job_paths.executions_dir):
             if isdir(join(job_paths.executions_dir, item)):
                 execution_id = item

@@ -7,7 +7,7 @@ from servitor.jobs import run_job
 
 from servitor.logging import log
 from servitor.http import HTTPRequestHandler
-from servitor.shared_memory import shared_memory
+from servitor.shared_memory import JobQueueItem, shared_memory
 
 
 def handle_shutdown(handler):
@@ -54,9 +54,9 @@ def start_job_worker(
     handle_shutdown(shutdown_handler)
     while keep_alive:
         try:
-            data = job_queue.get(timeout=1)
-            log.info("running job: " + data)
-            run_job(data)
+            item: JobQueueItem = job_queue.get(timeout=1)
+            log.info("running job: " + item.job_id)
+            run_job(item.job_id, item.execution_id)
         except queue.Empty:
             pass
 

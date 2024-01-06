@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "This job will always work"
+echo >&2 "And have stuff on stderr"
