@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ping -t 4 8.8.8.8
