@@ -50,7 +50,7 @@ def reply_json(ctx: http.server.BaseHTTPRequestHandler, code: int, body: object)
 # Ugly? yes
 # Works? yes
 # https://stackoverflow.com/a/21650502
-class UnixHTTPServer(http.server.HTTPServer):
+class UnixHTTPServer(http.server.ThreadingHTTPServer):
     address_family = socket.AF_UNIX
 
     def server_bind(self):
