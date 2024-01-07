@@ -13,7 +13,7 @@ class FileDatabase:
             for item in listdir(job_paths.executions_dir):
                 if isdir(join(job_paths.executions_dir, item)):
                     execution_id = item
-                    yield database.get_job_execution(job_id, execution_id)
+                    yield self.get_job_execution(job_id, execution_id)
 
         result = sorted(list(gen()), key=lambda x: int(x["execution_id"]), reverse=True)
         return result
@@ -21,7 +21,7 @@ class FileDatabase:
     def get_job_execution(self, job_id: str, execution_id: str):
         return {
             "execution_id": execution_id,
-            "status": database.get_job_execution_status(job_id, execution_id),
+            "status": self.get_job_execution_status(job_id, execution_id),
         }
 
     def create_job_execution(self, job_id: str):
