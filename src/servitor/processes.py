@@ -1,13 +1,12 @@
 import http.server
-import multiprocessing
 import queue
 import signal
 import threading
-from servitor.jobs import run_job
 
-from servitor.logging import log
+from servitor.jobs import run_job
+from servitor.framework.logging import log
 from servitor.http import HTTPRequestHandler
-from servitor.shared_memory import JobQueueItem, shared_memory
+from servitor.shared_memory import JobQueueItem, SharedMemory, set_shared_memory
 
 
 def handle_shutdown(handler):
@@ -19,11 +18,8 @@ def handle_shutdown(handler):
     signal.signal(signal.SIGTERM, shutdown_handler)
 
 
-def start_web_server(
-    job_queue: multiprocessing.Queue, state_lock: multiprocessing.Lock
-):
-    shared_memory.state_lock = state_lock
-    shared_memory.job_queue = job_queue
+def start_web_server(shared_memory: SharedMemory):
+    set_shared_memory(shared_memory)
     log.info("starting web server")
     httpd = http.server.HTTPServer(("", 40000), HTTPRequestHandler)
     thread = threading.Thread(target=httpd.serve_forever, args=(1,), daemon=True)
@@ -38,11 +34,8 @@ def start_web_server(
     log.info("http server shutted down")
 
 
-def start_job_worker(
-    job_queue: multiprocessing.Queue, state_lock: multiprocessing.Lock
-):
-    shared_memory.state_lock = state_lock
-    shared_memory.job_queue = job_queue
+def start_job_worker(shared_memory: SharedMemory):
+    set_shared_memory(shared_memory)
     log.info("starting job worker")
     keep_alive = True
 
@@ -54,7 +47,7 @@ def start_job_worker(
     handle_shutdown(shutdown_handler)
     while keep_alive:
         try:
-            item: JobQueueItem = job_queue.get(timeout=1)
+            item: JobQueueItem = shared_memory.job_queue.get(timeout=1)
             log.info("running job: " + item.job_id)
             run_job(item.job_id, item.execution_id)
         except queue.Empty:

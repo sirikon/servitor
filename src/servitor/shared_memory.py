@@ -1,14 +1,29 @@
 from dataclasses import dataclass
-from multiprocessing import Queue, Lock
+import multiprocessing
+
 
 @dataclass
 class JobQueueItem:
     job_id: str
     execution_id: str
 
-class _SharedMemory:
-    state_lock: Lock = None
-    job_queue: Queue = None
+
+class SharedMemory:
+    state_lock: multiprocessing.Lock
+    job_queue: multiprocessing.Queue
+
+    def __init__(self) -> None:
+        self.state_lock = multiprocessing.Lock()
+        self.job_queue = multiprocessing.Queue()
 
 
-shared_memory = _SharedMemory()
+_shared_memory: SharedMemory | None = None
+
+
+def set_shared_memory(shared_memory: SharedMemory):
+    global _shared_memory
+    _shared_memory = shared_memory
+
+
+def get_shared_memory() -> SharedMemory:
+    return _shared_memory
