@@ -1,6 +1,8 @@
 import http.server
 import json
 import re
+import socket
+import socketserver
 from typing import Callable
 from urllib.parse import urlparse
 
@@ -43,3 +45,15 @@ def reply(ctx: http.server.BaseHTTPRequestHandler, code: int, type: str, body: b
 
 def reply_json(ctx: http.server.BaseHTTPRequestHandler, code: int, body: object):
     reply(ctx, code, "application/json", json.dumps(body).encode())
+
+
+# Ugly? yes
+# Works? yes
+# https://stackoverflow.com/a/21650502
+class UnixHTTPServer(http.server.HTTPServer):
+    address_family = socket.AF_UNIX
+
+    def server_bind(self):
+        socketserver.TCPServer.server_bind(self)
+        self.server_name = "foo"
+        self.server_port = 0

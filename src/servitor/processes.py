@@ -1,7 +1,9 @@
-import http.server
 import queue
 import signal
 import threading
+from os import getcwd, remove
+from os.path import join, exists
+from servitor.framework.http import UnixHTTPServer
 
 from servitor.jobs import run_job
 from servitor.framework.logging import log
@@ -21,7 +23,10 @@ def handle_shutdown(handler):
 def start_web_server(shared_memory: SharedMemory):
     set_shared_memory(shared_memory)
     log.info("starting web server")
-    httpd = http.server.HTTPServer(("", 40000), HTTPRequestHandler)
+    sock_path = join(getcwd(), "servitor.sock")
+    if exists(sock_path):
+        remove(sock_path)
+    httpd = UnixHTTPServer(sock_path, HTTPRequestHandler)
     thread = threading.Thread(target=httpd.serve_forever, args=(1,), daemon=True)
     thread.start()
 
@@ -31,6 +36,7 @@ def start_web_server(shared_memory: SharedMemory):
 
     handle_shutdown(shutdown_handler)
     thread.join()
+    remove(sock_path)
     log.info("http server shutted down")
 
 

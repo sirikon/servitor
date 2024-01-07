@@ -86,4 +86,4 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
         handle_request(self, "POST")
 
     def log_message(self, format, *args):
-        log.debug(f"request address:{self.address_string()} {format % args}")
+        log.debug(f"request {format % args}")
