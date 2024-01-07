@@ -7,7 +7,8 @@ from servitor.framework.http import UnixHTTPServer
 
 from servitor.jobs import run_job
 from servitor.framework.logging import log
-from servitor.http import HTTPRequestHandler
+from servitor.framework.http import HTTPRequestHandler
+from servitor.http import configure_routes
 from servitor.shared_memory import JobQueueItem, SharedMemory, set_shared_memory
 
 
@@ -23,6 +24,7 @@ def handle_shutdown(handler):
 def start_web_server(shared_memory: SharedMemory):
     set_shared_memory(shared_memory)
     log.info("starting web server")
+    configure_routes()
     sock_path = join(getcwd(), "servitor.sock")
     if exists(sock_path):
         remove(sock_path)

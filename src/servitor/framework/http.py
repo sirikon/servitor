@@ -47,6 +47,17 @@ def reply_json(ctx: http.server.BaseHTTPRequestHandler, code: int, body: object)
     reply(ctx, code, "application/json", json.dumps(body).encode())
 
 
+class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        handle_request(self, "GET")
+
+    def do_POST(self):
+        handle_request(self, "POST")
+
+    def log_message(self, format, *args):
+        log.debug(f"request {format % args}")
+
+
 # Ugly? yes
 # Works? yes
 # https://stackoverflow.com/a/21650502
