@@ -26,6 +26,6 @@
         "**/__pycache__": true
     },
     "python.analysis.extraPaths": [
-        "./src"
+        "./src/python"
     ],
 }

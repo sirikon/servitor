@@ -8,7 +8,7 @@
             "module": "servitor",
             "cwd": "${workspaceFolder}/example",
             "env": {
-                "PYTHONPATH": "${workspaceFolder}/src",
+                "PYTHONPATH": "${workspaceFolder}/src/python",
             }
         }
     ]
