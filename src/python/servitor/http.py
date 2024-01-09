@@ -1,5 +1,5 @@
 import http.server
-from os import sep
+from os import sep, getenv
 from mimetypes import guess_type
 from os.path import join, normpath, dirname
 from urllib.parse import urlparse, parse_qs
@@ -54,22 +54,25 @@ def configure_routes():
             ),
         )
 
-    @route("GET", r"^\/ui$")
-    def _(ctx: http.server.BaseHTTPRequestHandler):
-        ctx.send_response(302)
-        ctx.send_header("Location", "/ui/")
-        ctx.end_headers()
+    ui_root = getenv("SERVITOR_UI_ROOT")
+    if ui_root is not None:
 
-    @route("GET", r"^\/ui/(?P<rest>.*)")
-    def _(ctx: http.server.BaseHTTPRequestHandler, rest: str = "index.html"):
-        if rest == "":
-            rest = "index.html"
-        base_path = normpath(join(dirname(__file__), "..", "ui"))
-        ui_file_path = normpath(join(base_path, rest))
+        @route("GET", r"^\/ui$")
+        def _(ctx: http.server.BaseHTTPRequestHandler):
+            ctx.send_response(302)
+            ctx.send_header("Location", "/ui/")
+            ctx.end_headers()
 
-        if not ui_file_path.startswith(base_path + sep):
-            reply(ctx, 404, "text/plain", b"")
-            return
+        @route("GET", r"^\/ui/(?P<rest>.*)")
+        def _(ctx: http.server.BaseHTTPRequestHandler, rest: str = "index.html"):
+            if rest == "":
+                rest = "index.html"
+            base_path = normpath(ui_root)
+            ui_file_path = normpath(join(base_path, rest))
 
-        with open(ui_file_path, "br") as f:
-            reply(ctx, 200, guess_type(ui_file_path)[0], f.read())
+            if not ui_file_path.startswith(base_path + sep):
+                reply(ctx, 404, "text/plain", b"")
+                return
+
+            with open(ui_file_path, "br") as f:
+                reply(ctx, 200, guess_type(ui_file_path)[0], f.read())

@@ -9,7 +9,8 @@ function main() { (
     socat_cmd="$(require_command socat)"
 
     cd "${root}/example"
-    export PYTHONPATH="${root}/src"
+    export PYTHONPATH="${root}/src/python"
+    export SERVITOR_UI_ROOT="${root}/src/ui"
 
     "${socat_cmd}" "TCP-LISTEN:${TCP_PORT},fork" "UNIX-CLIENT:./servitor.sock" &
     proxy_pid=$!
