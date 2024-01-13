@@ -17,9 +17,10 @@ def main():
             "Service": {
                 "User": args.user,
                 "Type": "simple",
-                "WorkingDirectory": os.path.normpath(
+                "Environment": "PYTHONPATH=" + os.path.normpath(
                     os.path.join(os.path.dirname(__file__), "../../src/python")
                 ),
+                "WorkingDirectory": "idunno",
                 "ExecStart": f"{args.python} -m servitor",
                 "Restart": "always",
                 "After": "network.target",
