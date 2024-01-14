@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 import argparse
-import configparser
 import sys
 import os
 import os.path
+
+from servitor_manager.systemd import print_systemd_file
 
 
 def main():
@@ -58,17 +59,6 @@ def cli():
         parser.print_help(sys.stderr)
         sys.exit(1)
     return parser.parse_args()
-
-
-def print_systemd_file(content):
-    config = configparser.ConfigParser(strict=True)
-    config = configparser.RawConfigParser()
-    config.optionxform = lambda option: option
-
-    for key in content:
-        config[key] = content[key]
-
-    config.write(sys.stdout, space_around_delimiters=False)
 
 
 if __name__ == "__main__":

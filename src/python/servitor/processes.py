@@ -1,7 +1,8 @@
 import queue
 import signal
 import threading
-from os import getcwd, remove
+from time import sleep
+from os import getcwd, remove, chmod
 from os.path import join, exists
 from servitor.framework.http import UnixHTTPServer
 
@@ -31,6 +32,12 @@ def start_web_server(shared_memory: SharedMemory):
     httpd = UnixHTTPServer(sock_path, HTTPRequestHandler)
     thread = threading.Thread(target=httpd.serve_forever, args=(1,), daemon=True)
     thread.start()
+
+    while True:
+        if exists(sock_path):
+            chmod(sock_path, 0o770)
+            break
+        sleep(0.1)
 
     def shutdown_handler():
         log.info("asking web server to shut down")
