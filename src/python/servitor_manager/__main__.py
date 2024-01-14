@@ -17,7 +17,8 @@ def main():
             "Service": {
                 "User": args.user,
                 "Type": "simple",
-                "Environment": "PYTHONPATH=" + os.path.normpath(
+                "Environment": "PYTHONPATH="
+                + os.path.normpath(
                     os.path.join(os.path.dirname(__file__), "../../src/python")
                 ),
                 "WorkingDirectory": "idunno",
@@ -31,7 +32,7 @@ def main():
 
 
 def get_args():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(prog="servitor_manager")
     parser.add_argument(
         "-u",
         "--user",
