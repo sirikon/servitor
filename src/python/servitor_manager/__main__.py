@@ -4,7 +4,7 @@ import sys
 import os
 import os.path
 
-from servitor_manager.systemd import print_systemd_file
+from servitor_manager.systemd import format_systemd_file, print_systemd_file
 
 
 def main():
@@ -12,33 +12,39 @@ def main():
 
     match args.subcommand:
         case "gen-systemd-service":
-            print_systemd_file(
-                {
-                    "Unit": {
-                        "Description": "Servitor",
-                    },
-                    "Service": {
-                        "User": args.user,
-                        "Type": "simple",
-                        "Environment": "PYTHONPATH="
-                        + os.path.normpath(
-                            os.path.join(os.path.dirname(__file__), "../../src/python")
-                        ),
-                        "WorkingDirectory": "idunno",
-                        "ExecStart": f"{args.python} -m servitor",
-                        "Restart": "always",
-                        "After": "network.target",
-                    },
-                    "Install": {"WantedBy": "multi-user.target"},
-                }
-            )
+            print_systemd_file(get_systemd_service_def(args.user, args.python))
         case _:
             print("Unknown subcommand " + args.subcommand)
+
+
+def get_systemd_service_def(user, python):
+    return {
+        "Unit": {
+            "Description": "Servitor",
+        },
+        "Service": {
+            "User": user,
+            "Type": "simple",
+            "Environment": "PYTHONPATH="
+            + os.path.normpath(
+                os.path.join(os.path.dirname(__file__), "../../src/python")
+            ),
+            "WorkingDirectory": "idunno",
+            "ExecStart": f"{python} -m servitor",
+            "Restart": "always",
+            "After": "network.target",
+        },
+        "Install": {"WantedBy": "multi-user.target"},
+    }
 
 
 def cli():
     parser = argparse.ArgumentParser(prog="servitor_manager")
     subparsers = parser.add_subparsers()
+
+    setup_parser = subparsers.add_parser("setup")
+    setup_parser.set_defaults(subcommand="setup")
+
     gen_sysd_parser = subparsers.add_parser("gen-systemd-service")
     gen_sysd_parser.set_defaults(subcommand="gen-systemd-service")
 
