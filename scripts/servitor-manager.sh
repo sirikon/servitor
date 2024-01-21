@@ -19,11 +19,14 @@ function main() {
 
     if ! id "$SERVITOR_USER" >/dev/null 2>&1; then
         log "Servitor user not found. Creating"
-        useradd -h
+        useradd \
+            --system \
+            --no-create-home \
+            --shell=/bin/false \
+            "$SERVITOR_USER"
     else
-        echo 'user not found'
+        log "Servitor user already exists. Skipping."
     fi
-
 }
 
 function log {
