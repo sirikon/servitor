@@ -76,12 +76,19 @@ class JobExecutionViewComponent extends Component {
     }
 
     async fetchJobExecutionInfo() {
-        this.job_execution = await fetch(`/api/jobs/executions/get?job_id=${this.getJobId()}&execution_id=${this.getExecutionId()}`)
-            .then(r => r.json());
-        this.refresh()
-        this.job_execution_log = await fetch(`/api/jobs/executions/logs/get?job_id=${this.getJobId()}&execution_id=${this.getExecutionId()}`)
-            .then(r => r.text());
-        this.refresh()
+        fetch(`/api/jobs/executions/get?job_id=${this.getJobId()}&execution_id=${this.getExecutionId()}`)
+            .then(r => r.json())
+            .then(result => {
+                this.job_execution = result
+                this.refresh()
+            })
+
+        fetch(`/api/jobs/executions/logs/get?job_id=${this.getJobId()}&execution_id=${this.getExecutionId()}`)
+            .then(r => r.text())
+            .then(result => {
+                this.job_execution_log = result
+                this.refresh()
+            })
     }
 
     getJobId() {
