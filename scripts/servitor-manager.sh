@@ -40,6 +40,7 @@ function main() {
     systemd_service >"$SERVITOR_SYSTEMD_SERVICE"
     systemctl daemon-reload
     systemctl enable servitor
+    systemctl restart servitor
 }
 
 function require_command() {
@@ -65,6 +66,7 @@ After=network.target
 Type=simple
 Restart=always
 User=${SERVITOR_USER}
+WorkingDirectory=${SERVITOR_HOME}
 Environment="PYTHONPATH=${SERVITOR_ROOT}/src/python"
 Environment="SERVITOR_UI_ROOT=${SERVITOR_ROOT}/src/ui"
 ExecStart=/usr/bin/python3 -m servitor
