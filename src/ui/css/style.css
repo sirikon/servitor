@@ -25,19 +25,19 @@ x-header div.breadcrumb {
 }
 
 x-job-execution div.status-line {
-    padding: .2em .5em;
+    padding: .2em .5em .2em 1em;
     color: white;
     background-color: gray;
 }
 
 x-job-execution div.status-line.is-success {
-    background-color: green;
+    background-color: #199f59;
 }
 
 x-job-execution div.status-line.is-failure {
-    background-color: brown;
+    background-color: #d0314d;
 }
 
 x-job-execution div.status-line.is-running {
-    background-color: blueviolet;
+    background-color: #3867d6;
 }
