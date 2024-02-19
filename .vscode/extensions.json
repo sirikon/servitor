@@ -1,6 +1,7 @@
 {
     "recommendations": [
         "ms-python.black-formatter",
-        "editorconfig.editorconfig"
+        "editorconfig.editorconfig",
+        "yzhang.markdown-all-in-one"
     ]
 }
