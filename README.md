@@ -28,11 +28,11 @@ curl -L https://raw.githubusercontent.com/sirikon/servitor/master/scripts/servit
 
 It makes some assumptions about your system. If those work for you, use it. If not, go the manual way.
 
+To update a Servitor installation, just run the installer again with the same parameters.
+
 Available environment variables to configure the installer at execution:
 
 - `SERVITOR_USER` (default: `root`): Change the user that will run the servitor systemd service. It will create the user if it doesn't exist yet.
-
-To update a Servitor installation, just run the installer again with the same parameters.
 
 ## Configure
 
