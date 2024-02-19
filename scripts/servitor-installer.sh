@@ -42,6 +42,7 @@ function main() {
     mkdir -p "$(dirname "$SERVITOR_SYSTEMD_SERVICE")"
     systemd_service >"$SERVITOR_SYSTEMD_SERVICE"
     if [ "$SYSTEM_ROOT" == "" ]; then
+        log "Enabling and starting systemd service"
         systemctl daemon-reload
         systemctl enable servitor
         systemctl restart servitor
