@@ -32,6 +32,8 @@ Available environment variables to configure the installer at execution:
 
 - `SERVITOR_USER` (default: `root`): Change the user that will run the servitor systemd service. It will create the user if it doesn't exist yet.
 
+To update a Servitor installation, just run the installer again with the same parameters.
+
 ## Configure
 
 Available environment variables to configure servitor at execution:
