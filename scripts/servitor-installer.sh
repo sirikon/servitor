@@ -39,10 +39,13 @@ function main() {
     chown -R "${SERVITOR_USER}:${SERVITOR_USER}" "$SERVITOR_HOME"
 
     log "Installing systemd service"
+    mkdir -p "$(dirname "$SERVITOR_SYSTEMD_SERVICE")"
     systemd_service >"$SERVITOR_SYSTEMD_SERVICE"
-    systemctl daemon-reload
-    systemctl enable servitor
-    systemctl restart servitor
+    if [ "$SYSTEM_ROOT" == "" ]; then
+        systemctl daemon-reload
+        systemctl enable servitor
+        systemctl restart servitor
+    fi
 }
 
 function require_command() {

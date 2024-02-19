@@ -4,7 +4,7 @@ set -euo pipefail
 TCP_PORT="40000"
 
 function main() { (
-    root="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
+    root="$(realpath "$(dirname "${BASH_SOURCE[0]}")/../..")"
     python_cmd="$(require_command python3 python)"
     socat_cmd="$(require_command socat)"
 
