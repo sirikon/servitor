@@ -113,12 +113,16 @@ component('x-job-execution', (c) => {
     const getExecutionStatus = () => {
         return jobExecution ? jobExecution.status : '';
     }
+    const getExecutionStatusClass = () => {
+        const status = getExecutionStatus()
+        return status ? `is-${status}` : ''
+    }
 
     fetchJobExecutionInfo();
 
     return () => (
         h('div', {}, [
-            h('div', { class: `status-line is-${getExecutionStatus()}` }, getExecutionStatus()),
+            h('div', { class: `status-line ${getExecutionStatusClass()}` }, getExecutionStatus() || '...'),
             h('pre', {}, jobExecutionLog)
         ])
     )
