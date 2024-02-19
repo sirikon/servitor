@@ -1,6 +1,6 @@
 # Servitor
 
-Simplest possible automation server.
+Simplest possible job manager.
 
 ## Install
 
