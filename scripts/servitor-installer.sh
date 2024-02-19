@@ -6,7 +6,7 @@ SERVITOR_REPOSITORY="github.com/sirikon/servitor"
 SERVITOR_ROOT="${SYSTEM_ROOT}/opt/servitor"
 SERVITOR_HOME="${SYSTEM_ROOT}/srv/servitor"
 SERVITOR_SYSTEMD_SERVICE="${SYSTEM_ROOT}/etc/systemd/system/servitor.service"
-SERVITOR_USER="servitor"
+SERVITOR_USER="${SERVITOR_USER:-"root"}"
 
 function main() {
     git_cmd="$(require_command git)"
@@ -21,20 +21,22 @@ function main() {
         (cd "$SERVITOR_ROOT" && "$git_cmd" pull)
     fi
 
-    if ! id "$SERVITOR_USER" >/dev/null 2>&1; then
-        log "Servitor user not found. Creating"
-        useradd \
-            --system \
-            --no-create-home \
-            --shell=/bin/false \
-            "$SERVITOR_USER"
-    else
-        log "Servitor user already exists. Skipping."
+    if [ "$SERVITOR_USER" != "root" ]; then
+        if ! id "$SERVITOR_USER" >/dev/null 2>&1; then
+            log "User '${SERVITOR_USER}' not found. Creating"
+            useradd \
+                --system \
+                --no-create-home \
+                --shell=/bin/false \
+                "$SERVITOR_USER"
+        else
+            log "User '${SERVITOR_USER}' already exists. Skipping creation."
+        fi
     fi
 
     log "Ensuring servitor home directory exists and has the correct permissions"
     mkdir -p "$SERVITOR_HOME"
-    chown -R servitor:servitor "$SERVITOR_HOME"
+    chown -R "${SERVITOR_USER}:${SERVITOR_USER}" "$SERVITOR_HOME"
 
     log "Installing systemd service"
     systemd_service >"$SERVITOR_SYSTEMD_SERVICE"
