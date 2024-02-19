@@ -6,7 +6,7 @@ Simplest possible job manager.
 
 Any subdirectory under `<working_directory>/config/jobs` with an executable file called `run` inside will be considered a **job**. Jobs are **executed** by executing the `run` file in its own directory. The logs of the execution are captured and stored.
 
-The default UI and the HTTP API allows exploring jobs, executions, logs, and triggering new executions.
+The default UI and the HTTP API allow exploring jobs, executions, logs, and triggering new executions.
 
 ## Install
 
