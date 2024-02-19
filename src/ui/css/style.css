@@ -37,3 +37,7 @@ x-job-execution div.status-line.is-success {
 x-job-execution div.status-line.is-failure {
     background-color: brown;
 }
+
+x-job-execution div.status-line.is-running {
+    background-color: blueviolet;
+}
