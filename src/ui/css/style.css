@@ -1,3 +1,39 @@
 body {
     background-color: aliceblue;
+    font-family: monospace;
+    color: #262626;
+}
+
+x-header>div {
+    background-color: white;
+    padding: 1px 1em;
+    display: flex;
+    align-items: center;
+}
+
+x-header a {
+    color: inherit;
+    text-decoration-thickness: 2px;
+    text-decoration-color: gray;
+}
+
+x-header div.breadcrumb {
+    padding: 0 0 0 1.5em;
+    border-left: 2px solid #e6e6e6;
+    margin: 0 0 0 1.5em;
+    font-size: 1.2em;
+}
+
+x-job-execution div.status-line {
+    padding: .2em .5em;
+    color: white;
+    background-color: gray;
+}
+
+x-job-execution div.status-line.is-success {
+    background-color: green;
+}
+
+x-job-execution div.status-line.is-failure {
+    background-color: brown;
 }

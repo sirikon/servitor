@@ -1,9 +1,37 @@
 'use strict';
 
 component('x-header', () => {
+
+    const getJobId = () => getInternalUrl().searchParams.get('job_id');
+    const getExecutionId = () => getInternalUrl().searchParams.get('execution_id');
+
+    const getBreadcrumbs = () => {
+        const jobId = getJobId();
+        const executionId = getExecutionId();
+        if (executionId) {
+            return [
+                [jobId, `#job?job_id=${jobId}`],
+                [`#${executionId}`, null]
+            ]
+        }
+        if (jobId) {
+            return [
+                [jobId, null]
+            ]
+        }
+        return []
+    }
+
     return () => (
-        h('h1', {}, [
-            h('a', { href: '#' }, "Servitor")
+        h('div', {}, [
+            h('h1', {}, [
+                h('a', { href: '#' }, "servitor"),
+            ]),
+            ...getBreadcrumbs().map(([text, link]) => (
+                h('div', { class: 'breadcrumb' }, [
+                    link ? h('a', { href: link }, text) : h('span', {}, text)
+                ])
+            ))
         ])
     )
 })
@@ -46,8 +74,9 @@ component('x-job', (c) => {
 
     return () => (
         h('div', {}, [
-            h('h3', {}, `Job: ${getJobId()}`),
-            h('button', { type: 'button', onclick: onClickRun }, 'Run'),
+            h('p', {}, [
+                h('button', { type: 'button', onclick: onClickRun }, 'Run'),
+            ]),
             h('h4', {}, 'Executions'),
             h('ul', {}, jobExecutions.map(e =>
                 h('li', {}, [
@@ -81,21 +110,15 @@ component('x-job-execution', (c) => {
             })
     }
 
-    const getExecutionStatusText = () => {
-        if (jobExecution == null) {
-            return ''
-        }
-        return `[${jobExecution.status}]`;
+    const getExecutionStatus = () => {
+        return jobExecution ? jobExecution.status : '';
     }
 
     fetchJobExecutionInfo();
 
     return () => (
         h('div', {}, [
-            h('h3', {}, [
-                h('a', { href: `#job?job_id=${getJobId()}` }, `Job: ${getJobId()}`)
-            ]),
-            h('h4', {}, `Execution: ${getExecutionId()} ${getExecutionStatusText()}`),
+            h('div', { class: `status-line is-${getExecutionStatus()}` }, getExecutionStatus()),
             h('pre', {}, jobExecutionLog)
         ])
     )
