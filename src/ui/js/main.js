@@ -1,166 +1,135 @@
 'use strict';
 
-class HeaderComponent extends Component {
-    render() {
-        return h('h1', {}, [
+component('x-header', () => {
+    return () => (
+        h('h1', {}, [
             h('a', { href: '#' }, "Servitor")
-        ]);
-    }
-}
+        ])
+    )
+})
 
-class JobListViewComponent extends Component {
-    constructor() {
-        super()
-        this.jobs = [];
-        this.fetchJobs();
+component('x-job-list', (c) => {
+    let jobs = [];
+    const fetchJobs = async () => {
+        jobs = await fetch('/api/jobs/get_list').then(r => r.json());
+        c.refresh();
     }
+    fetchJobs();
 
-    async fetchJobs() {
-        this.jobs = await fetch('/api/jobs/get_list').then(r => r.json());
-        this.refresh();
-    }
-
-    render() {
-        return h('ul', {}, this.jobs.map(j =>
+    return () => (
+        h('ul', {}, jobs.map(j =>
             h('li', {}, [
                 h('a', { href: `#job?job_id=${j.job_id}` }, j.job_id)
             ])
-        ));
-    }
-}
+        ))
+    )
+})
 
-class JobViewComponent extends Component {
-    constructor() {
-        super();
-        this.job_executions = [];
-        this.fetchJobInfo();
-        this.onClickRun = this.onClickRun.bind(this);
-    }
+component('x-job', (c) => {
+    let jobExecutions = [];
 
-    getJobId() {
-        return getInternalUrl().searchParams.get('job_id');
-    }
+    const getJobId = () => getInternalUrl().searchParams.get('job_id');
 
-    async fetchJobInfo() {
-        this.job_executions = await fetch('/api/jobs/executions/get_list?job_id=' + this.getJobId())
+    const fetchJobInfo = async () => {
+        jobExecutions = await fetch('/api/jobs/executions/get_list?job_id=' + getJobId())
             .then(r => r.json());
-        this.refresh();
+        c.refresh();
     }
 
-    async onClickRun() {
-        await fetch('/api/jobs/run?job_id=' + this.getJobId(), { method: 'POST' })
-        await this.fetchJobInfo()
-        this.refresh();
+    const onClickRun = async () => {
+        await fetch('/api/jobs/run?job_id=' + getJobId(), { method: 'POST' })
+        await fetchJobInfo()
+        c.refresh();
     }
 
-    render() {
-        return h('div', {}, [
-            h('h3', {}, `Job: ${this.getJobId()}`),
-            h('button', { type: 'button', onclick: this.onClickRun }, 'Run'),
+    fetchJobInfo();
+
+    return () => (
+        h('div', {}, [
+            h('h3', {}, `Job: ${getJobId()}`),
+            h('button', { type: 'button', onclick: onClickRun }, 'Run'),
             h('h4', {}, 'Executions'),
-            h('ul', {}, this.job_executions.map(e =>
+            h('ul', {}, jobExecutions.map(e =>
                 h('li', {}, [
-                    h('a', { href: `#job_execution?job_id=${this.getJobId()}&execution_id=${e.execution_id}` }, `${e.execution_id} [${e.status}]`)
+                    h('a', { href: `#job_execution?job_id=${getJobId()}&execution_id=${e.execution_id}` }, `${e.execution_id} [${e.status}]`)
                 ])
             ))
         ])
-    }
-}
+    )
+})
 
-class JobExecutionViewComponent extends Component {
-    constructor() {
-        super();
-        this.job_execution = null;
-        this.job_execution_log = '';
-        this.fetchJobExecutionInfo();
-    }
+component('x-job-execution', (c) => {
+    let jobExecution = null;
+    let jobExecutionLog = '';
 
-    async fetchJobExecutionInfo() {
-        fetch(`/api/jobs/executions/get?job_id=${this.getJobId()}&execution_id=${this.getExecutionId()}`)
+    const getJobId = () => getInternalUrl().searchParams.get('job_id');
+    const getExecutionId = () => getInternalUrl().searchParams.get('execution_id');
+
+    const fetchJobExecutionInfo = async () => {
+        fetch(`/api/jobs/executions/get?job_id=${getJobId()}&execution_id=${getExecutionId()}`)
             .then(r => r.json())
             .then(result => {
-                this.job_execution = result
-                this.refresh()
+                jobExecution = result
+                c.refresh()
             })
 
-        fetch(`/api/jobs/executions/logs/get?job_id=${this.getJobId()}&execution_id=${this.getExecutionId()}`)
+        fetch(`/api/jobs/executions/logs/get?job_id=${getJobId()}&execution_id=${getExecutionId()}`)
             .then(r => r.text())
             .then(result => {
-                this.job_execution_log = result
-                this.refresh()
+                jobExecutionLog = result
+                c.refresh()
             })
     }
 
-    getJobId() {
-        return getInternalUrl().searchParams.get('job_id');
-    }
-
-    getExecutionId() {
-        return getInternalUrl().searchParams.get('execution_id');
-    }
-
-    getExecutionStatusText() {
-        if (this.job_execution == null) {
+    const getExecutionStatusText = () => {
+        if (jobExecution == null) {
             return ''
         }
-        return `[${this.job_execution.status}]`;
+        return `[${jobExecution.status}]`;
     }
 
-    render() {
-        return h('div', {}, [
+    fetchJobExecutionInfo();
+
+    return () => (
+        h('div', {}, [
             h('h3', {}, [
-                h('a', { href: `#job?job_id=${this.getJobId()}` }, `Job: ${this.getJobId()}`)
+                h('a', { href: `#job?job_id=${getJobId()}` }, `Job: ${getJobId()}`)
             ]),
-            h('h4', {}, `Execution: ${this.getExecutionId()} ${this.getExecutionStatusText()}`),
-            h('pre', {}, this.job_execution_log)
+            h('h4', {}, `Execution: ${getExecutionId()} ${getExecutionStatusText()}`),
+            h('pre', {}, jobExecutionLog)
         ])
-    }
-}
+    )
+})
 
 const ROUTES = [
-    [/^$/, JobListViewComponent],
-    [/^job$/, JobViewComponent],
-    [/^job_execution$/, JobExecutionViewComponent],
+    [/^$/, 'x-job-list'],
+    [/^job$/, 'x-job'],
+    [/^job_execution$/, 'x-job-execution'],
 ]
 
-class RouterComponent extends Component {
-    constructor() {
-        super();
-        this.onHashChange = this.onHashChange.bind(this);
-    }
+component('x-root', (c) => {
+    const onHashChange = () => { c.refresh() }
+    window.addEventListener('hashchange', onHashChange);
 
-    render() {
-        return h(this.getActiveView())
-    }
-
-    getActiveView() {
+    const getActivePage = () => {
         const path = getInternalUrl().pathname;
         for (const route of ROUTES) {
             const [matcher, component] = route;
             if (matcher.test(path)) {
-                return getComponentTag(component);
+                return h(component)
             }
         }
-        return hash;
     }
 
-    onHashChange() {
-        this.refresh();
+    return {
+        onDisconnected: () => {
+            window.removeEventListener('hashchange', onHashChange);
+        },
+        render: () => (
+            h('div', {}, [
+                h('x-header'),
+                getActivePage()
+            ])
+        )
     }
-
-    connectedCallback() {
-        super.connectedCallback();
-        window.addEventListener('hashchange', this.onHashChange);
-    }
-
-    disconnectedCallback() {
-        super.disconnectedCallback();
-        window.removeEventListener('hashchange', this.onHashChange);
-    }
-}
-
-registerComponent(HeaderComponent);
-registerComponent(RouterComponent);
-registerComponent(JobListViewComponent);
-registerComponent(JobViewComponent);
-registerComponent(JobExecutionViewComponent);
+})

@@ -21,27 +21,46 @@ function h(tag, _props, _children) {
     return el;
 }
 
-class Component extends HTMLElement {
-    refresh() {
-        this.innerHTML = '';
-        this.appendChild(this.render());
-    }
+function component(tag, logic) {
+    class Component extends HTMLElement {
+        constructor() {
+            super();
+            log('INIT', tag);
+            this.logicResult = logic(this);
+        }
 
-    connectedCallback() {
-        this.refresh();
-    }
+        refresh() {
+            log('REFRESH', tag);
+            this.replaceChildren(this.render());
+        }
 
-    disconnectedCallback() { }
+        render() {
+            if (typeof this.logicResult === "function") {
+                return this.logicResult();
+            } else {
+                return this.logicResult.render();
+            }
+        }
+
+        onDisconnected() {
+            if (this.logicResult.onDisconnected) {
+                this.logicResult.onDisconnected();
+            }
+        }
+
+        connectedCallback() {
+            log('CONNECTED', tag);
+            this.refresh();
+        }
+
+        disconnectedCallback() {
+            log('DISCONNECTED', tag);
+            this.onDisconnected();
+        }
+    }
+    customElements.define(tag, Component)
 }
 
-function getComponentTag(componentClazz) {
-    return "x-" + componentClazz.name
-        .replace(/Component$/, '')
-        .replace(/([A-Z])/g, '-$1')
-        .toLowerCase()
-        .replace(/^-/, '');
-}
-
-function registerComponent(componentClazz) {
-    customElements.define(getComponentTag(componentClazz), componentClazz);
+function log() {
+    // console.log(...arguments)
 }
