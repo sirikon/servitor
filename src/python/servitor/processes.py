@@ -1,7 +1,6 @@
 import queue
 import signal
 import threading
-import multiprocessing.connection
 from time import sleep
 from os import getcwd, remove, chmod
 from os.path import join, exists
@@ -12,6 +11,7 @@ from servitor.framework.logging import log
 from servitor.framework.http import HTTPRequestHandler
 from servitor.http import configure_routes
 from servitor.shared_memory import JobQueueItem, SharedMemory, set_shared_memory
+from servitor.event_bus import EventBusClient
 
 
 def handle_shutdown(handler):
@@ -23,9 +23,7 @@ def handle_shutdown(handler):
     signal.signal(signal.SIGTERM, shutdown_handler)
 
 
-def start_web_server(
-    shared_memory: SharedMemory, conn: multiprocessing.connection.Connection
-):
+def start_web_server(shared_memory: SharedMemory, event_bus: EventBusClient):
     set_shared_memory(shared_memory)
     log.info("starting web server")
     configure_routes()
@@ -47,20 +45,20 @@ def start_web_server(
         httpd.shutdown()
 
     handle_shutdown(shutdown_handler)
-    conn.send("started http server")
+    event_bus.send("started http server")
     thread.join()
     remove(sock_path)
     log.info("http server shutted down")
 
 
-def start_job_worker(
-    shared_memory: SharedMemory, conn: multiprocessing.connection.Connection
-):
+def start_job_worker(shared_memory: SharedMemory, event_bus: EventBusClient):
     set_shared_memory(shared_memory)
     log.info("starting job worker")
     keep_alive = True
 
-    threading.Thread(target=print_conn, args=(conn,), daemon=True).start()
+    @event_bus.listen
+    def _(msg):
+        log.info(f"new msg: {msg}")
 
     def shutdown_handler():
         log.info("asking job worker to shut down")
@@ -77,14 +75,3 @@ def start_job_worker(
             pass
 
     log.info("job worker shutted down")
-
-
-def print_conn(
-    conn: multiprocessing.connection.Connection,
-):
-    try:
-        while True:
-            msg = conn.recv()
-            log.info(f"new msg: {msg}")
-    except EOFError:
-        log.info("pipe closed")
