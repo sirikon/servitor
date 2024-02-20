@@ -10,7 +10,6 @@ from servitor.framework.http import reply, reply_json, route
 from servitor.jobs import (
     get_jobs,
 )
-from servitor.framework.logging import log
 from servitor.shared_memory import JobQueueItem, get_shared_memory
 from servitor.event_bus import get_event_bus_client
 from servitor.database import database
@@ -23,7 +22,6 @@ def configure_routes():
         done = threading.Event()
 
         def on_message(msg):
-            log.info(f"handling msg: {msg}")
             try:
                 chunk = f"{msg}\n"
                 chunk_size = len(chunk.encode())
