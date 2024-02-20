@@ -26,6 +26,7 @@ def handle_shutdown(handler):
 def start_web_server(shared_memory: SharedMemory, event_bus_client: EventBusClient):
     set_shared_memory(shared_memory)
     set_event_bus_client(event_bus_client)
+    event_bus_client.start()
     log.info("starting web server")
     configure_routes()
     sock_path = join(getcwd(), "servitor.sock")
@@ -54,6 +55,7 @@ def start_web_server(shared_memory: SharedMemory, event_bus_client: EventBusClie
 def start_job_worker(shared_memory: SharedMemory, event_bus_client: EventBusClient):
     set_shared_memory(shared_memory)
     set_event_bus_client(event_bus_client)
+    event_bus_client.start()
     log.info("starting job worker")
     keep_alive = True
 

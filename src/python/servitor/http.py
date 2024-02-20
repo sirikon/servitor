@@ -10,6 +10,7 @@ from servitor.jobs import (
 )
 from servitor.framework.logging import log
 from servitor.shared_memory import JobQueueItem, get_shared_memory
+from servitor.event_bus import get_event_bus_client
 from servitor.database import database
 
 
@@ -26,6 +27,14 @@ def configure_routes():
         job_id = query["job_id"][0]
         execution_id = database.create_job_execution(job_id)
         get_shared_memory().job_queue.put(JobQueueItem(job_id, execution_id))
+        reply_json(ctx, 200, {"status": "success"})
+
+    @route("POST", r"^\/api/jobs/executions/cancel$")
+    def _(ctx: http.server.BaseHTTPRequestHandler):
+        query = parse_qs(urlparse(ctx.path).query)
+        job_id = query["job_id"][0]
+        execution_id = query["execution_id"][0]
+        get_event_bus_client().send(f"cancel_{job_id}_{execution_id}")
         reply_json(ctx, 200, {"status": "success"})
 
     @route("GET", r"^\/api/jobs/executions/get_list$")

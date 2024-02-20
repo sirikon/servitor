@@ -6,21 +6,44 @@ from servitor.framework.logging import log
 
 
 class EventBusClient:
-    _connection: multiprocessing.connection.Connection
+    _handlers = []
+    _handlers_lock = threading.Lock()
+    _connection: multiprocessing.connection.Connection = None
 
     def __init__(self, connection: multiprocessing.connection.Connection) -> None:
         self._connection = connection
 
-    def listen(self, handler):
-        threading.Thread(target=self._listen, args=(handler,), daemon=True).start()
+    def start(self):
+        threading.Thread(target=self._repeater, daemon=True).start()
 
-    def _listen(self, handler):
+    def listen(self, handler):
+        self._handlers_lock.acquire()
+        try:
+            if handler not in self._handlers:
+                self._handlers.append(handler)
+        finally:
+            self._handlers_lock.release()
+
+    def unlisten(self, handler):
+        self._handlers_lock.acquire()
+        try:
+            if handler in self._handlers:
+                self._handlers.remove(handler)
+        finally:
+            self._handlers_lock.release()
+
+    def _repeater(self):
         try:
             while True:
                 msg = self._connection.recv()
-                handler(msg)
+                self._handlers_lock.acquire()
+                try:
+                    for handler in self._handlers:
+                        handler(msg)
+                finally:
+                    self._handlers_lock.release()
         except EOFError:
-            log.info("event bus client closed")
+            log.info("event bus client repeater closed")
 
     def send(self, msg):
         self._connection.send(msg)

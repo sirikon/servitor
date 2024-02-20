@@ -94,7 +94,7 @@ component('x-job-execution', (c) => {
     const getJobId = () => getInternalUrl().searchParams.get('job_id');
     const getExecutionId = () => getInternalUrl().searchParams.get('execution_id');
 
-    const fetchJobExecutionInfo = async () => {
+    const fetchJobExecutionInfo = () => {
         fetch(`/api/jobs/executions/get?job_id=${getJobId()}&execution_id=${getExecutionId()}`)
             .then(r => r.json())
             .then(result => {
@@ -110,6 +110,10 @@ component('x-job-execution', (c) => {
             })
     }
 
+    const cancelJobExecution = async () => {
+        await fetch(`/api/jobs/executions/cancel?job_id=${getJobId()}&execution_id=${getExecutionId()}`, { method: 'POST' })
+    }
+
     const getExecutionStatus = () => {
         return jobExecution ? jobExecution.status : '';
     }
@@ -123,6 +127,11 @@ component('x-job-execution', (c) => {
     return () => (
         h('div', {}, [
             h('div', { class: `status-line ${getExecutionStatusClass()}` }, getExecutionStatus() || '...'),
+            ...(getExecutionStatus() === 'running' ? [
+                h('p', {}, [
+                    h('button', { type: 'button', onclick: cancelJobExecution }, 'cancel')
+                ])
+            ] : []),
             h('pre', {}, jobExecutionLog)
         ])
     )
