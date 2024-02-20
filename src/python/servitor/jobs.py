@@ -6,7 +6,6 @@ from glob import glob
 from stat import S_IXUSR
 from pathlib import Path
 
-from servitor.framework.logging import log
 from servitor.paths import JobExecutionPathsBuilder, JobPathsBuilder
 from servitor.database import database
 from servitor.event_bus import get_event_bus_client
