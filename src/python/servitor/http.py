@@ -4,7 +4,6 @@ import json
 from os import sep, getenv
 from mimetypes import guess_type
 from os.path import join, normpath
-from time import sleep
 from urllib.parse import urlparse, parse_qs
 
 from servitor.framework.http import reply, reply_json, route
