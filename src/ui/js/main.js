@@ -1,7 +1,23 @@
 'use strict';
 
-component('x-header', () => {
+fetch('/api/events')
+    .then((response) => {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
 
+        function read() {
+            reader.read().then((result) => {
+                if (!result.value) return;
+                const msg = JSON.parse(decoder.decode(result.value));
+                console.log("new event", msg);
+                return read();
+            })
+        }
+
+        return read();
+    })
+
+component('x-header', () => {
     const getJobId = () => getInternalUrl().searchParams.get('job_id');
     const getExecutionId = () => getInternalUrl().searchParams.get('execution_id');
 
