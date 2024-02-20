@@ -36,16 +36,20 @@ class EventBusClient:
         try:
             while True:
                 msg = self._connection.recv()
-                self._handlers_lock.acquire()
-                try:
-                    for handler in self._handlers:
-                        handler(msg)
-                finally:
-                    self._handlers_lock.release()
+                self._handle(msg)
         except EOFError:
             log.info("event bus client repeater closed")
 
+    def _handle(self, msg):
+        self._handlers_lock.acquire()
+        try:
+            for handler in self._handlers:
+                handler(msg)
+        finally:
+            self._handlers_lock.release()
+
     def send(self, msg):
+        self._handle(msg)
         self._connection.send(msg)
 
 

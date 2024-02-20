@@ -1,7 +1,9 @@
 import http.server
+import threading
 from os import sep, getenv
 from mimetypes import guess_type
-from os.path import join, normpath, dirname
+from os.path import join, normpath
+from time import sleep
 from urllib.parse import urlparse, parse_qs
 
 from servitor.framework.http import reply, reply_json, route
@@ -15,6 +17,30 @@ from servitor.database import database
 
 
 def configure_routes():
+    @route("GET", r"^\/api/events$")
+    def _(ctx: http.server.BaseHTTPRequestHandler):
+        event_bus_client = get_event_bus_client()
+        done = threading.Event()
+
+        def on_message(msg):
+            log.info(f"handling msg: {msg}")
+            try:
+                chunk = f"{msg}\n"
+                chunk_size = len(chunk.encode())
+                ctx.wfile.write(f"{chunk_size:x}\r\n{chunk}\r\n".encode())
+            except Exception:
+                done.set()
+
+        try:
+            ctx.send_response(200)
+            ctx.send_header("Content-Type", f"text/plain; charset=utf-8")
+            ctx.send_header("Transfer-Encoding", "chunked")
+            ctx.end_headers()
+            event_bus_client.listen(on_message)
+            done.wait()
+        finally:
+            event_bus_client.unlisten(on_message)
+
     @route("GET", r"^\/api/jobs/get_list$")
     def _(ctx: http.server.BaseHTTPRequestHandler):
         query = parse_qs(urlparse(ctx.path).query)
