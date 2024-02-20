@@ -24,7 +24,7 @@ def start():
         )
     ]
 
-    for _ in range(1):
+    for _ in range(max(multiprocessing.cpu_count(), 2)):
         processes.append(
             multiprocessing.Process(
                 target=start_job_worker,
