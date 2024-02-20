@@ -11,7 +11,7 @@ from servitor.framework.logging import log
 from servitor.framework.http import HTTPRequestHandler
 from servitor.http import configure_routes
 from servitor.shared_memory import JobQueueItem, SharedMemory, set_shared_memory
-from servitor.event_bus import EventBusClient
+from servitor.event_bus import EventBusClient, set_event_bus_client
 
 
 def handle_shutdown(handler):
@@ -23,8 +23,9 @@ def handle_shutdown(handler):
     signal.signal(signal.SIGTERM, shutdown_handler)
 
 
-def start_web_server(shared_memory: SharedMemory, event_bus: EventBusClient):
+def start_web_server(shared_memory: SharedMemory, event_bus_client: EventBusClient):
     set_shared_memory(shared_memory)
+    set_event_bus_client(event_bus_client)
     log.info("starting web server")
     configure_routes()
     sock_path = join(getcwd(), "servitor.sock")
@@ -45,20 +46,16 @@ def start_web_server(shared_memory: SharedMemory, event_bus: EventBusClient):
         httpd.shutdown()
 
     handle_shutdown(shutdown_handler)
-    event_bus.send("started http server")
     thread.join()
     remove(sock_path)
     log.info("http server shutted down")
 
 
-def start_job_worker(shared_memory: SharedMemory, event_bus: EventBusClient):
+def start_job_worker(shared_memory: SharedMemory, event_bus_client: EventBusClient):
     set_shared_memory(shared_memory)
+    set_event_bus_client(event_bus_client)
     log.info("starting job worker")
     keep_alive = True
-
-    @event_bus.listen
-    def _(msg):
-        log.info(f"new msg: {msg}")
 
     def shutdown_handler():
         log.info("asking job worker to shut down")

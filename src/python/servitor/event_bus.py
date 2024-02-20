@@ -49,3 +49,15 @@ class EventBus:
                         c.send(msg)
         except EOFError:
             log.info("event bus broadcaster closed")
+
+
+_event_bus_client: EventBusClient | None = None
+
+
+def set_event_bus_client(event_bus_client: EventBusClient):
+    global _event_bus_client
+    _event_bus_client = event_bus_client
+
+
+def get_event_bus_client() -> EventBusClient:
+    return _event_bus_client
