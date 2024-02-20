@@ -6,7 +6,7 @@ fetch('/api/events')
         const decoder = new TextDecoder();
 
         function read() {
-            reader.read().then((result) => {
+            return reader.read().then((result) => {
                 if (!result.value) return;
                 const msg = JSON.parse(decoder.decode(result.value));
                 console.log("new event", msg);
