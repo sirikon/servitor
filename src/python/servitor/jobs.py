@@ -33,7 +33,11 @@ def run_job(job_id: str, execution_id: str):
     process: Popen = None
 
     def listen_for_cancellation(msg):
-        if msg == f"cancel_{job_id}_{execution_id}":
+        if (
+            msg["id"] == "job_execution_cancellation_requested"
+            and msg["payload"]["job_id"] == job_id
+            and msg["payload"]["execution_id"] == execution_id
+        ):
             killpg(process.pid, SIGINT)
 
     event_bus_client.listen(listen_for_cancellation)

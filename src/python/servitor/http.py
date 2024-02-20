@@ -1,5 +1,6 @@
 import http.server
 import threading
+import json
 from os import sep, getenv
 from mimetypes import guess_type
 from os.path import join, normpath
@@ -23,7 +24,7 @@ def configure_routes():
 
         def on_message(msg):
             try:
-                chunk = f"{msg}\n"
+                chunk = f"{json.dumps(msg, separators=(',', ':'))}\n"
                 chunk_size = len(chunk.encode())
                 ctx.wfile.write(f"{chunk_size:x}\r\n{chunk}\r\n".encode())
             except Exception:
@@ -58,7 +59,10 @@ def configure_routes():
         query = parse_qs(urlparse(ctx.path).query)
         job_id = query["job_id"][0]
         execution_id = query["execution_id"][0]
-        get_event_bus_client().send(f"cancel_{job_id}_{execution_id}")
+        get_event_bus_client().send(
+            "job_execution_cancellation_requested",
+            {"job_id": job_id, "execution_id": execution_id},
+        )
         reply_json(ctx, 200, {"status": "success"})
 
     @route("GET", r"^\/api/jobs/executions/get_list$")

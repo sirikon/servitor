@@ -48,7 +48,8 @@ class EventBusClient:
         finally:
             self._handlers_lock.release()
 
-    def send(self, msg):
+    def send(self, id, payload=None):
+        msg = {"id": id, "payload": payload}
         self._handle(msg)
         self._connection.send(msg)
 
