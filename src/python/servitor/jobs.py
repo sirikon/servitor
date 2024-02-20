@@ -1,4 +1,4 @@
-from subprocess import run, DEVNULL
+from subprocess import Popen, DEVNULL
 from os import getcwd, makedirs
 from os.path import join, dirname, relpath
 from glob import glob
@@ -31,16 +31,17 @@ def run_job(job_id: str, execution_id: str):
         database.set_job_execution_status(job_id, execution_id, "running")
         makedirs(job_execution_paths.logs_dir, exist_ok=True)
         with open(job_execution_paths.main_log_file, "w") as log:
-            run(
+            process = Popen(
                 [job_paths.run_file],
                 cwd=job_paths.home,
                 stdout=log,
                 stderr=log,
                 stdin=DEVNULL,
-                check=True,
             )
+            exit_code = process.wait()
     except Exception as ex:
         database.set_job_execution_status(job_id, execution_id, "failure")
         raise ex
     else:
-        database.set_job_execution_status(job_id, execution_id, "success")
+        status = "success" if exit_code == 0 else "failure"
+        database.set_job_execution_status(job_id, execution_id, status)
