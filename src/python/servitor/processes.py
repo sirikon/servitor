@@ -1,6 +1,7 @@
 import queue
 import signal
 import threading
+import multiprocessing.connection
 from time import sleep
 from os import getcwd, remove, chmod
 from os.path import join, exists
@@ -22,7 +23,9 @@ def handle_shutdown(handler):
     signal.signal(signal.SIGTERM, shutdown_handler)
 
 
-def start_web_server(shared_memory: SharedMemory):
+def start_web_server(
+    shared_memory: SharedMemory, conn: multiprocessing.connection.Connection
+):
     set_shared_memory(shared_memory)
     log.info("starting web server")
     configure_routes()
@@ -44,15 +47,20 @@ def start_web_server(shared_memory: SharedMemory):
         httpd.shutdown()
 
     handle_shutdown(shutdown_handler)
+    conn.send("started http server")
     thread.join()
     remove(sock_path)
     log.info("http server shutted down")
 
 
-def start_job_worker(shared_memory: SharedMemory):
+def start_job_worker(
+    shared_memory: SharedMemory, conn: multiprocessing.connection.Connection
+):
     set_shared_memory(shared_memory)
     log.info("starting job worker")
     keep_alive = True
+
+    threading.Thread(target=print_conn, args=(conn,), daemon=True).start()
 
     def shutdown_handler():
         log.info("asking job worker to shut down")
@@ -69,3 +77,14 @@ def start_job_worker(shared_memory: SharedMemory):
             pass
 
     log.info("job worker shutted down")
+
+
+def print_conn(
+    conn: multiprocessing.connection.Connection,
+):
+    try:
+        while True:
+            msg = conn.recv()
+            log.info(f"new msg: {msg}")
+    except EOFError:
+        log.info("pipe closed")
