@@ -119,7 +119,6 @@ const ServitorEvents = (() => {
 
 // #region Components
 
-
 component('x-header', () => {
     const getJobId = () => getInternalUrl().searchParams.get('job_id');
     const getExecutionId = () => getInternalUrl().searchParams.get('execution_id');
