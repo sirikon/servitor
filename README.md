@@ -8,6 +8,12 @@ Any subdirectory under `<working_directory>/config/jobs` with an executable file
 
 The default UI and the HTTP API allow exploring jobs, executions, logs, and triggering new executions.
 
+### Important technical details
+
+Jobs are executed with the same environment and user used to start servitor. For example: Starting Servitor with the `root` user means that the jobs execute as `root` aswell, without limitations. Plan accordingly.
+
+Servitor exposes an HTTP API through a UNIX socket on `<working_directory>/servitor.sock`. Servitor implements no authentication nor authorization of any kind, which means that a process that can communicate with `servitor.sock` can do anything that the API allows, unrestricted. This socket is created with the permissions `770` to limit the access to the same user and group executing Servitor.
+
 ## Install
 
 ### Manual
