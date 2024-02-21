@@ -252,7 +252,10 @@ component('x-job-execution', (c) => {
     }, 2000) : null;
 
     const stopListeningEvents = ServitorEvents.listen((e) => {
-        if (e.id === "job_execution_status_changed" && e.payload.job_id === getJobId() && e.payload.execution_id === getExecutionId()) {
+        if (
+            e.id === "job_execution_status_changed"
+            && e.payload.job_id === getJobId()
+            && e.payload.execution_id === getExecutionId()) {
             fetchJobExecutionInfo();
         }
     })
