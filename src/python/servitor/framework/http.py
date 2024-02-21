@@ -29,10 +29,10 @@ def handle_request(ctx: http.server.BaseHTTPRequestHandler, method: str):
             if match:
                 func(ctx, **match.groupdict())
                 return
-        reply_json(ctx, 404, {"message": "Unknown path"})
+        reply_not_found(ctx)
     except Exception:
         log.exception("error during request processing")
-        reply_json(ctx, 500, {"message": "Something went wrong"})
+        reply_error(ctx)
 
 
 def reply(ctx: http.server.BaseHTTPRequestHandler, code: int, type: str, body: bytes):
@@ -45,6 +45,14 @@ def reply(ctx: http.server.BaseHTTPRequestHandler, code: int, type: str, body: b
 
 def reply_json(ctx: http.server.BaseHTTPRequestHandler, code: int, body: object):
     reply(ctx, code, "application/json", json.dumps(body).encode())
+
+
+def reply_not_found(ctx: http.server.BaseHTTPRequestHandler):
+    reply_json(ctx, 404, {"message": "Unknown path"})
+
+
+def reply_error(ctx: http.server.BaseHTTPRequestHandler):
+    reply_json(ctx, 500, {"message": "Something went wrong"})
 
 
 class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):

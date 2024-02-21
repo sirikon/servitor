@@ -44,4 +44,4 @@ Available environment variables to configure the installer at execution:
 
 Available environment variables to configure servitor at execution:
 
-- `SERVITOR_UI_ROOT` (default: _empty_): If defined, the specified filesystem path is served under the `/ui` HTTP path. No `/ui` HTTP path will be available unless this environment variable is defined.
+- `SERVITOR_UI_ROOT` (default: _empty_): If defined, the specified filesystem path is served under the root HTTP path (`/`). This is intended to provide a way to serve alternative UIs or to disable the UI completely. If the environment variable stays undefined, no UI will be served at the root HTTP path, and the server will reply with `404 Not Found`.
