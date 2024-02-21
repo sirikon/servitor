@@ -1,30 +1,124 @@
 'use strict';
 
-const eventListeners = [];
-function listenEvents(cb) {
-    eventListeners.push(cb);
-    return () => {
-        const pos = eventListeners.indexOf(cb);
-        eventListeners.splice(pos, 1);
-    }
+// #region Logging
+
+function log() {
+    // console.log(...arguments)
 }
 
-fetch('/api/events')
-    .then((response) => {
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
+// #endregion
 
-        function read() {
-            return reader.read().then((result) => {
-                if (!result.value) return;
-                const msg = JSON.parse(decoder.decode(result.value));
-                eventListeners.forEach(cb => cb(msg));
-                return read();
-            })
+// #region Rendering
+
+function h(tag, _props, _children) {
+    const props = _props || {};
+    const children = _children || [];
+    const el = document.createElement(tag);
+    for (const key in props) {
+        if (['onclick'].indexOf(key) >= 0) {
+            el.addEventListener(key.substring(2), props[key]);
+        } else {
+            el.setAttribute(key, props[key]);
+        }
+    }
+    if (typeof children === 'string') {
+        el.textContent = children;
+    } else {
+        for (const child of children) {
+            el.appendChild(child);
+        }
+    }
+    return el;
+}
+
+function component(tag, logic) {
+    class Component extends HTMLElement {
+        constructor() {
+            super();
+            log('INIT', tag);
+            this.logicResult = logic(this);
         }
 
-        return read();
-    })
+        refresh() {
+            log('REFRESH', tag);
+            this.replaceChildren(this.render());
+        }
+
+        render() {
+            if (typeof this.logicResult === "function") {
+                return this.logicResult();
+            } else {
+                return this.logicResult.render();
+            }
+        }
+
+        onDisconnected() {
+            if (this.logicResult.onDisconnected) {
+                this.logicResult.onDisconnected();
+            }
+        }
+
+        connectedCallback() {
+            log('CONNECTED', tag);
+            this.refresh();
+        }
+
+        disconnectedCallback() {
+            log('DISCONNECTED', tag);
+            this.onDisconnected();
+        }
+    }
+    customElements.define(tag, Component)
+}
+
+// #endregion
+
+// #region Routing
+
+function getInternalUrl() {
+    const hash = document.location.hash.replace(/^#/, '');
+    return new URL('internal:' + hash);
+}
+
+// #endregion
+
+// #region Servitor Events
+
+const ServitorEvents = (() => {
+    const eventListeners = [];
+
+    function listen(cb) {
+        eventListeners.push(cb);
+        return () => {
+            const pos = eventListeners.indexOf(cb);
+            eventListeners.splice(pos, 1);
+        }
+    }
+
+    fetch('/api/events')
+        .then((response) => {
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+
+            function read() {
+                return reader.read().then((result) => {
+                    if (!result.value) return;
+                    const msg = JSON.parse(decoder.decode(result.value));
+                    eventListeners.forEach(cb => cb(msg));
+                    return read();
+                })
+            }
+
+            return read();
+        });
+
+    return { listen }
+})();
+
+// #endregion
+
+// #region Components
+
 
 component('x-header', () => {
     const getJobId = () => getInternalUrl().searchParams.get('job_id');
@@ -158,8 +252,8 @@ component('x-job-execution', (c) => {
         fetchJobExecutionInfo();
     }, 2000) : null;
 
-    const stopListeningEvents = listenEvents((e) => {
-        if (e.id === "job_execution_finished" && e.payload.job_id === getJobId() && e.payload.execution_id === getExecutionId()) {
+    const stopListeningEvents = ServitorEvents.listen((e) => {
+        if (e.id === "job_execution_status_changed" && e.payload.job_id === getJobId() && e.payload.execution_id === getExecutionId()) {
             fetchJobExecutionInfo();
         }
     })
@@ -215,3 +309,5 @@ component('x-root', (c) => {
         )
     }
 })
+
+// #endregion

@@ -2,6 +2,7 @@ from os import getcwd, listdir, makedirs
 from os.path import exists, dirname, isdir, join
 from servitor.paths import JobExecutionPathsBuilder, JobPathsBuilder
 from servitor.shared_memory import get_shared_memory
+from servitor.event_bus import get_event_bus_client
 
 
 class FileDatabase:
@@ -64,6 +65,10 @@ class FileDatabase:
         makedirs(dirname(job_execution_paths.status_file), exist_ok=True)
         with open(job_execution_paths.status_file, "w") as f:
             f.write(status)
+        get_event_bus_client().send(
+            "job_execution_status_changed",
+            {"job_id": job_id, "execution_id": execution_id, "status": status},
+        )
 
     def get_job_execution_log(self, job_id: str, execution_id: str):
         job_paths = JobPathsBuilder(getcwd(), job_id)

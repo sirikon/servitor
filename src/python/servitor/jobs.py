@@ -61,11 +61,6 @@ def run_job(job_id: str, execution_id: str):
         raise ex
     else:
         final_status = "success" if exit_code == 0 else "failure"
-
     finally:
         event_bus_client.unlisten(listen_for_cancellation)
         database.set_job_execution_status(job_id, execution_id, final_status)
-        event_bus_client.send(
-            "job_execution_finished",
-            {"job_id": job_id, "execution_id": execution_id, "status": final_status},
-        )
