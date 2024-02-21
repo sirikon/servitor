@@ -1,5 +1,14 @@
 'use strict';
 
+const eventListeners = [];
+function listenEvents(cb) {
+    eventListeners.push(cb);
+    return () => {
+        const pos = eventListeners.indexOf(cb);
+        eventListeners.splice(pos, 1);
+    }
+}
+
 fetch('/api/events')
     .then((response) => {
         const reader = response.body.getReader();
@@ -9,7 +18,7 @@ fetch('/api/events')
             return reader.read().then((result) => {
                 if (!result.value) return;
                 const msg = JSON.parse(decoder.decode(result.value));
-                console.log("new event", msg);
+                eventListeners.forEach(cb => cb(msg));
                 return read();
             })
         }
@@ -140,17 +149,38 @@ component('x-job-execution', (c) => {
 
     fetchJobExecutionInfo();
 
-    return () => (
-        h('div', {}, [
-            h('div', { class: `status-line ${getExecutionStatusClass()}` }, getExecutionStatus() || '...'),
-            ...(getExecutionStatus() === 'running' ? [
-                h('p', {}, [
-                    h('button', { type: 'button', onclick: cancelJobExecution }, 'cancel')
-                ])
-            ] : []),
-            h('pre', {}, jobExecutionLog)
-        ])
-    )
+    let refreshInterval = getExecutionStatus() === "running" || getExecutionStatus() === "" ? setInterval(() => {
+        if (getExecutionStatus() !== "running") {
+            clearInterval(refreshInterval);
+            refreshInterval = null;
+            return;
+        }
+        fetchJobExecutionInfo();
+    }, 2000) : null;
+
+    const stopListeningEvents = listenEvents((e) => {
+        if (e.id === "job_execution_finished" && e.payload.job_id === getJobId() && e.payload.execution_id === getExecutionId()) {
+            fetchJobExecutionInfo();
+        }
+    })
+
+    return {
+        onDisconnected: () => {
+            if (refreshInterval != null) { clearInterval(refreshInterval); }
+            stopListeningEvents();
+        },
+        render: () => (
+            h('div', {}, [
+                h('div', { class: `status-line ${getExecutionStatusClass()}` }, getExecutionStatus() || '...'),
+                ...(getExecutionStatus() === 'running' ? [
+                    h('p', {}, [
+                        h('button', { type: 'button', onclick: cancelJobExecution }, 'cancel')
+                    ])
+                ] : []),
+                h('pre', {}, jobExecutionLog)
+            ])
+        )
+    }
 })
 
 const ROUTES = [

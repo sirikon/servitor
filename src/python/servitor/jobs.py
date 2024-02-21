@@ -31,6 +31,7 @@ def run_job(job_id: str, execution_id: str):
     event_bus_client = get_event_bus_client()
 
     process: Popen = None
+    final_status: str = None
 
     def listen_for_cancellation(msg):
         if (
@@ -55,10 +56,16 @@ def run_job(job_id: str, execution_id: str):
             )
             exit_code = process.wait()
     except Exception as ex:
+        final_status = "failure"
         database.set_job_execution_status(job_id, execution_id, "failure")
         raise ex
     else:
-        status = "success" if exit_code == 0 else "failure"
-        database.set_job_execution_status(job_id, execution_id, status)
+        final_status = "success" if exit_code == 0 else "failure"
+
     finally:
         event_bus_client.unlisten(listen_for_cancellation)
+        database.set_job_execution_status(job_id, execution_id, final_status)
+        event_bus_client.send(
+            "job_execution_finished",
+            {"job_id": job_id, "execution_id": execution_id, "status": final_status},
+        )
