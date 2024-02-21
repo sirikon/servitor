@@ -1,13 +1,5 @@
 'use strict';
 
-// #region Logging
-
-function log() {
-    // console.log(...arguments)
-}
-
-// #endregion
-
 // #region Rendering
 
 function h(tag, _props, _children) {
@@ -35,12 +27,10 @@ function component(tag, logic) {
     class Component extends HTMLElement {
         constructor() {
             super();
-            log('INIT', tag);
             this.logicResult = logic(this);
         }
 
         refresh() {
-            log('REFRESH', tag);
             this.replaceChildren(this.render());
         }
 
@@ -59,12 +49,10 @@ function component(tag, logic) {
         }
 
         connectedCallback() {
-            log('CONNECTED', tag);
             this.refresh();
         }
 
         disconnectedCallback() {
-            log('DISCONNECTED', tag);
             this.onDisconnected();
         }
     }
