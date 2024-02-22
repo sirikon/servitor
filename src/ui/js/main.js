@@ -20,7 +20,6 @@ function h(tag, _props, _children) {
             if (typeof child === 'string') {
                 el.appendChild(document.createTextNode(child))
             } else {
-                console.log(child);
                 el.appendChild(child);
             }
         }
