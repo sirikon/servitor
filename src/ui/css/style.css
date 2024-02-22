@@ -4,6 +4,43 @@ body {
     color: #262626;
 }
 
+.x-section {
+    margin: 1em;
+}
+
+.x-box {
+    margin: 1em 0;
+    padding: 1px 1em;
+    background-color: white;
+}
+
+.x-table {
+    margin: 1em 0;
+    background-color: white;
+    display: table;
+    width: 100%;
+}
+
+.x-table .row {
+    display: table-row;
+}
+
+.x-table .cell {
+    display: table-cell;
+    padding: .5em 1em;
+    border: dashed #00000029;
+    border-width: 0 0 1px 0;
+}
+
+.x-table .row:last-child .cell {
+    border-width: 0;
+}
+
+.x-table .header .cell {
+    background-color: #00000005;
+    border-width: 0;
+}
+
 x-header>div {
     background-color: white;
     padding: 1px 1em;
@@ -22,6 +59,10 @@ x-header div.breadcrumb {
     border-left: 2px solid #e6e6e6;
     margin: 0 0 0 1.5em;
     font-size: 1.2em;
+}
+
+x-job .x-table .row.header .cell[data-column="0"] {
+    width: 0;
 }
 
 x-job-execution div.status-line {

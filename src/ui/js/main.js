@@ -17,7 +17,12 @@ function h(tag, _props, _children) {
         el.textContent = children;
     } else {
         for (const child of children) {
-            el.appendChild(child);
+            if (typeof child === 'string') {
+                el.appendChild(document.createTextNode(child))
+            } else {
+                console.log(child);
+                el.appendChild(child);
+            }
         }
     }
     return el;
@@ -151,13 +156,28 @@ component('x-job-list', (c) => {
     fetchJobs();
 
     return () => (
-        h('ul', {}, jobs.map(j =>
-            h('li', {}, [
+        h('div', {}, [
+            h('div', { class: 'x-section' }, [
+                h('b', {}, 'jobs')
+            ]),
+            table(null, jobs.map(j => [
                 h('a', { href: `#job?job_id=${j.job_id}` }, j.job_id)
-            ])
-        ))
+            ]))
+        ])
     )
 })
+
+function table(header, rows) {
+    return h('div', { class: "x-table" },
+        [
+            ...(header != null && header.length > 0 ? [
+                h('div', { class: "row header" }, header.map((item, i) => h('div', { class: "cell", "data-column": i }, [item])))
+            ] : []),
+            ...rows.map((items, i) => h('div', { class: "row", "data-row": i },
+                items.map((item, i) => h('div', { class: 'cell', "data-column": i }, [item]))))
+        ]
+    )
+}
 
 component('x-job', (c) => {
     let jobExecutions = [];
@@ -180,15 +200,17 @@ component('x-job', (c) => {
 
     return () => (
         h('div', {}, [
-            h('p', {}, [
-                h('button', { type: 'button', onclick: onClickRun }, 'Run'),
+            h('div', { class: 'x-section' }, [
+                h('b', {}, 'executions'),
+                h('button', { type: 'button', style: "margin-left: 1em;", onclick: onClickRun }, 'run'),
             ]),
-            h('h4', {}, 'Executions'),
-            h('ul', {}, jobExecutions.map(e =>
-                h('li', {}, [
-                    h('a', { href: `#job_execution?job_id=${getJobId()}&execution_id=${e.execution_id}` }, `${e.execution_id} [${e.status}]`)
-                ])
-            ))
+            table([
+                h('b', {}, '#'),
+                'status',
+            ], jobExecutions.map(e => [
+                h('a', { href: `#job_execution?job_id=${getJobId()}&execution_id=${e.execution_id}` }, e.execution_id),
+                e.status
+            ])),
         ])
     )
 })
@@ -257,9 +279,9 @@ component('x-job-execution', (c) => {
             h('div', {}, [
                 h('div', { class: `status-line ${getExecutionStatusClass()}` }, getExecutionStatus() || '...'),
                 ...(getExecutionStatus() === 'running' ? [
-                    h('p', {}, [
+                    h('div', { class: 'x-section' }, [
                         h('button', { type: 'button', onclick: cancelJobExecution }, 'cancel')
-                    ])
+                    ]),
                 ] : []),
                 h('pre', {}, jobExecutionLog)
             ])
