@@ -15,7 +15,7 @@ function main() { (
     "${socat_cmd}" "TCP-LISTEN:${TCP_PORT},fork" "UNIX-CLIENT:./servitor.sock" &
     proxy_pid=$!
     echo "### started proxy on PID $proxy_pid"
-    echo "### http://127.0.0.1:${TCP_PORT}/ui/"
+    echo "### http://127.0.0.1:${TCP_PORT}/"
 
     "${python_cmd}" -m servitor "$@"
 
