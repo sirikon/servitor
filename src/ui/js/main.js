@@ -93,6 +93,8 @@ function getInternalUrl() {
 // #region Servitor Events
 
 const ServitorEvents = (() => {
+    const MINIMUM_TIME_BETWEEN_RETRIES_MILLIS = 4000;
+
     const eventListeners = [];
 
     function listen(cb) {
@@ -103,22 +105,42 @@ const ServitorEvents = (() => {
         }
     }
 
-    fetch('/api/events')
-        .then((response) => {
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-
-            function read() {
-                return reader.read().then((result) => {
-                    if (!result.value) return;
-                    const msg = JSON.parse(decoder.decode(result.value));
-                    eventListeners.forEach(cb => cb(msg));
-                    return read();
-                })
+    async function connectForever() {
+        while (true) {
+            const startTimestamp = Date.now();
+            try {
+                await fetchEventsForever();
+            } catch (err) {
+                console.debug(err);
             }
+            const millisToWait = Math.max((startTimestamp + MINIMUM_TIME_BETWEEN_RETRIES_MILLIS) - Date.now(), 0);
+            await waitMillis(millisToWait);
+        }
+    }
 
-            return read();
-        });
+    async function waitMillis(ms) {
+        return new Promise((resolve) => setTimeout(() => resolve(null), ms))
+    }
+
+    async function fetchEventsForever() {
+        const controller = new AbortController();
+        window.thecontroller = controller;
+        const response = await fetch('/api/events', { signal: controller.signal });
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        function read() {
+            return reader.read().then((result_1) => {
+                if (!result_1.value) return;
+                const msg = JSON.parse(decoder.decode(result_1.value));
+                console.log(msg);
+                eventListeners.forEach(cb => cb(msg));
+                return read();
+            });
+        }
+        return read();
+    }
+
+    connectForever();
 
     return { listen }
 })();
