@@ -2,66 +2,82 @@
 
 // #region Rendering
 
-function h(tag, _props, _children) {
-    const props = _props || {};
-    const children = _children || [];
-    const el = document.createElement(tag);
-    for (const key in props) {
-        if (['onclick'].indexOf(key) >= 0) {
-            el.addEventListener(key.substring(2), props[key]);
-        } else {
-            el.setAttribute(key, props[key]);
-        }
-    }
-    if (typeof children === 'string') {
-        el.textContent = children;
-    } else {
-        for (const child of children) {
-            if (typeof child === 'string') {
-                el.appendChild(document.createTextNode(child))
+(() => {
+    const EVENT_LISTENER_ATTRIBUTES = ["onclick"]
+
+    function h(tag, _props, _children) {
+        const props = _props || {};
+        const children = normalizeChildren(_children);
+
+        const el = document.createElement(tag);
+
+        for (const key in props) {
+            if (EVENT_LISTENER_ATTRIBUTES.indexOf(key) >= 0) {
+                el.addEventListener(key.substring(2), props[key]);
             } else {
-                el.appendChild(child);
+                el.setAttribute(key, props[key]);
             }
         }
+
+        for (const _child of children) {
+            const child = typeof _child === 'string'
+                ? document.createTextNode(_child)
+                : _child;
+            el.appendChild(child);
+        }
+
+        return el;
     }
-    return el;
-}
 
-function component(tag, logic) {
-    class Component extends HTMLElement {
-        constructor() {
-            super();
-            this.logicResult = logic(this);
+    function normalizeChildren(children) {
+        if (Array.isArray(children)) {
+            return children;
         }
-
-        refresh() {
-            this.replaceChildren(this.render());
+        if (children != null) {
+            return [children];
         }
-
-        render() {
-            if (typeof this.logicResult === "function") {
-                return this.logicResult();
-            } else {
-                return this.logicResult.render();
-            }
-        }
-
-        onDisconnected() {
-            if (this.logicResult.onDisconnected) {
-                this.logicResult.onDisconnected();
-            }
-        }
-
-        connectedCallback() {
-            this.refresh();
-        }
-
-        disconnectedCallback() {
-            this.onDisconnected();
-        }
+        return [];
     }
-    customElements.define(tag, Component)
-}
+
+    function component(tag, logic) {
+        class Component extends HTMLElement {
+            constructor() {
+                super();
+                this.logicResult = logic(this);
+            }
+
+            refresh() {
+                this.replaceChildren(this.render());
+            }
+
+            render() {
+                if (typeof this.logicResult === "function") {
+                    return this.logicResult();
+                } else {
+                    return this.logicResult.render();
+                }
+            }
+
+            onDisconnected() {
+                if (this.logicResult.onDisconnected) {
+                    this.logicResult.onDisconnected();
+                }
+            }
+
+            connectedCallback() {
+                this.refresh();
+            }
+
+            disconnectedCallback() {
+                this.onDisconnected();
+            }
+        }
+        customElements.define(tag, Component)
+    }
+
+    window.h = h;
+    window.component = component;
+})()
 
 // #endregion
 
