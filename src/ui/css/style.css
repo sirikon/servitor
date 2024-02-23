@@ -30,7 +30,7 @@ body {
 .x-table .cell {
     display: table-cell;
     padding: .5em 1em;
-    border: dashed #00000029;
+    border: dashed #d6d6d6;
     border-width: 0 0 1px 0;
 }
 
@@ -38,8 +38,13 @@ body {
     border-width: 0;
 }
 
+.x-table .header {
+    position: sticky;
+    top: 0;
+}
+
 .x-table .header .cell {
-    background-color: #00000005;
+    background-color: #fafafa;
     border-width: 0;
 }
 
