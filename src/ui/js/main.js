@@ -126,7 +126,7 @@ const Rendering = (() => {
 
         for (const key in props) {
             if (EVENT_LISTENER_ATTRIBUTES.indexOf(key) >= 0) {
-                el.addEventListener(key.substring(2), props[key]);
+                el[key] = props[key];
             } else {
                 el.setAttribute(key, props[key]);
             }
@@ -218,15 +218,14 @@ const Rendering = (() => {
     }
 
     function applyDomChanges(root, content) {
-        if (content == null) {
+        if (content == null || (Array.isArray(content) && content.length === 0)) {
             root.innerHTML = '';
             return;
         }
 
-        const oldNodes = Array.prototype.slice.call(root.childNodes);
+        const oldNodes = [...root.childNodes];
         const newNodes = (Array.isArray(content) ? content : [content]);
 
-        // If extra elements in DOM, remove them
         const leftOverElements = oldNodes.length - newNodes.length;
         for (let i = leftOverElements; i > 0; i--) {
             const el = oldNodes[oldNodes.length - i];
@@ -242,30 +241,49 @@ const Rendering = (() => {
                 continue;
             }
 
-            if (getNodeType(newNode) !== getNodeType(oldNode)) {
+            const newNodeType = getNodeType(newNode);
+            const oldNodeType = getNodeType(oldNode);
+            if (newNodeType !== oldNodeType) {
                 oldNode.parentNode.replaceChild(newNode.cloneNode(true), oldNode);
                 continue;
             }
 
-            const newNodeContent = getNodeContent(newNode);
-            if (newNodeContent && newNodeContent !== getNodeContent(oldNode)) {
+            if (!["text", "comment"].includes(newNodeType)) {
+                const newNodeAttributeNames = newNode.getAttributeNames();
+                const oldNodeAttributeNames = oldNode.getAttributeNames();
+                for (const attr of oldNodeAttributeNames) {
+                    if (!newNodeAttributeNames.includes(attr)) {
+                        oldNode.removeAttribute(attr);
+                    }
+                }
+                for (const attr of newNodeAttributeNames) {
+                    oldNode.setAttribute(attr, newNode.getAttribute(attr));
+                }
+            }
+
+            for (const event of EVENT_LISTENER_ATTRIBUTES) {
+                oldNode[event] = newNode[event];
+            }
+
+            const newNodeContent = getNodeTextContent(newNode);
+            if (newNodeContent != null && newNodeContent !== getNodeTextContent(oldNode)) {
                 oldNode.textContent = newNodeContent;
             }
 
-            if (oldNode.childNodes.length > 0 && newNode.childNodes.length === 0) {
+            if (newNode.childNodes.length === 0) {
                 oldNode.innerHTML = '';
                 continue;
             }
 
             if (oldNode.childNodes.length === 0 && newNode.childNodes.length > 0) {
                 const fragment = document.createDocumentFragment();
-                applyDomChanges(fragment, newNode);
+                applyDomChanges(fragment, [...newNode.childNodes]);
                 oldNode.appendChild(fragment);
                 continue;
             }
 
             if (newNode.childNodes.length > 0) {
-                applyDomChanges(oldNode, newNode);
+                applyDomChanges(oldNode, [...newNode.childNodes]);
             }
         }
 
@@ -277,7 +295,7 @@ const Rendering = (() => {
         return node.tagName.toLowerCase();
     };
 
-    function getNodeContent(node) {
+    function getNodeTextContent(node) {
         if (node.childNodes && node.childNodes.length > 0) return null;
         return node.textContent;
     };
