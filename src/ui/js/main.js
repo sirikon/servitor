@@ -254,7 +254,7 @@ const Data = (() => {
             return reader.read().then((result) => {
                 if (!result.value) return;
                 const msg = JSON.parse(decoder.decode(result.value));
-                eventListeners.forEach(cb => cb(msg));
+                eventListeners.slice(0).forEach(cb => cb(msg));
                 return read();
             });
         }
@@ -273,6 +273,11 @@ const Data = (() => {
     function useFetch(url, initialValue) {
         const [iter, setIter] = useState(0);
         const [result, setResult] = useState(initialValue);
+
+        const refresh = useCallback(() => {
+            setIter(v => v + 1)
+        }, [setIter]);
+
         useEffect(() => {
             const controller = new AbortController();
             fetch(url)
@@ -280,7 +285,7 @@ const Data = (() => {
                 .then(d => setResult(d));
             return () => controller.abort();
         }, [url, iter])
-        return [result, () => setIter(v => v + 1)];
+        return [result, refresh];
     }
 
     function useJobs() {
@@ -302,14 +307,15 @@ const Data = (() => {
 
     function useJobExecution(jobId, executionId) {
         const [jobExecution, refreshJobExecution] = useFetch(`/api/jobs/executions/get?job_id=${jobId}&execution_id=${executionId}`, null);
-        const eventCallback = useCallback((e) => {
+        const cb = (e) => {
             if (
                 e.id === "job_execution_status_changed"
                 && e.payload.job_id === jobId
                 && e.payload.execution_id === executionId) {
                 refreshJobExecution()
             }
-        }, [jobId, executionId, refreshJobExecution])
+        }
+        const eventCallback = useCallback(cb, [jobId, executionId, refreshJobExecution])
         useEvents(eventCallback);
         return [jobExecution, refreshJobExecution];
     }
