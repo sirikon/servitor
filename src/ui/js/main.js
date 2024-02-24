@@ -41,13 +41,18 @@
 
     function component(tag, logic) {
         class Component extends HTMLElement {
+
             constructor() {
                 super();
-                this.logicResult = logic(this);
             }
 
             refresh() {
-                this.replaceChildren(this.render());
+                const renderResult = this.render();
+                if (renderResult != null) {
+                    this.replaceChildren(renderResult);
+                } else {
+                    this.innerHTML = '';
+                }
             }
 
             render() {
@@ -65,6 +70,9 @@
             }
 
             connectedCallback() {
+                if (!this.logicResult) {
+                    this.logicResult = logic(this);
+                }
                 this.refresh();
             }
 
@@ -87,6 +95,30 @@ function getInternalUrl() {
     const hash = document.location.hash.replace(/^#/, '');
     return new URL('internal:' + hash);
 }
+
+// #endregion
+
+// #region Networking
+
+const Networking = (() => {
+
+    async function fetchChunks(url, controller, onchunk) {
+        const response = await fetch(url, { signal: controller.signal });
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        function read() {
+            return reader.read().then((result) => {
+                if (!result.value) return;
+                const chunk = decoder.decode(result.value);
+                onchunk(chunk)
+                return read();
+            });
+        }
+        return read();
+    }
+
+    return { fetchChunks }
+})()
 
 // #endregion
 
@@ -124,7 +156,6 @@ const ServitorEvents = (() => {
 
     async function fetchEventsForever() {
         const controller = new AbortController();
-        window.thecontroller = controller;
         const response = await fetch('/api/events', { signal: controller.signal });
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
@@ -132,7 +163,6 @@ const ServitorEvents = (() => {
             return reader.read().then((result_1) => {
                 if (!result_1.value) return;
                 const msg = JSON.parse(decoder.decode(result_1.value));
-                console.log(msg);
                 eventListeners.forEach(cb => cb(msg));
                 return read();
             });
@@ -253,30 +283,33 @@ component('x-job', (c) => {
 })
 
 component('x-job-execution', (c) => {
-    let jobExecution = null;
-    let jobExecutionLog = '';
-
     const getJobId = () => getInternalUrl().searchParams.get('job_id');
     const getExecutionId = () => getInternalUrl().searchParams.get('execution_id');
 
+    return {
+        render: () => (
+            h('div', {}, [
+                h('x-job-execution-status-line', { 'job-id': getJobId(), 'execution-id': getExecutionId() }),
+                h('x-job-execution-top-bar', { 'job-id': getJobId(), 'execution-id': getExecutionId() }),
+                h('x-job-execution-logs', { 'job-id': getJobId(), 'execution-id': getExecutionId() })
+            ])
+        )
+    }
+})
+
+component('x-job-execution-status-line', (c) => {
+    const jobId = c.getAttribute('job-id');
+    const executionId = c.getAttribute('execution-id');
+
+    let jobExecution = null;
+
     const fetchJobExecutionInfo = () => {
-        fetch(`/api/jobs/executions/get?job_id=${getJobId()}&execution_id=${getExecutionId()}`)
+        fetch(`/api/jobs/executions/get?job_id=${jobId}&execution_id=${executionId}`)
             .then(r => r.json())
             .then(result => {
                 jobExecution = result
                 c.refresh()
             })
-
-        fetch(`/api/jobs/executions/logs/get?job_id=${getJobId()}&execution_id=${getExecutionId()}`)
-            .then(r => r.text())
-            .then(result => {
-                jobExecutionLog = result
-                c.refresh()
-            })
-    }
-
-    const cancelJobExecution = async () => {
-        await fetch(`/api/jobs/executions/cancel?job_id=${getJobId()}&execution_id=${getExecutionId()}`, { method: 'POST' })
     }
 
     const getExecutionStatus = () => {
@@ -287,41 +320,100 @@ component('x-job-execution', (c) => {
         return status ? `is-${status}` : ''
     }
 
-    fetchJobExecutionInfo();
-
-    let refreshInterval = getExecutionStatus() === "running" || getExecutionStatus() === "" ? setInterval(() => {
-        if (getExecutionStatus() !== "running") {
-            clearInterval(refreshInterval);
-            refreshInterval = null;
-            return;
-        }
-        fetchJobExecutionInfo();
-    }, 2000) : null;
-
     const stopListeningEvents = ServitorEvents.listen((e) => {
         if (
             e.id === "job_execution_status_changed"
-            && e.payload.job_id === getJobId()
-            && e.payload.execution_id === getExecutionId()) {
+            && e.payload.job_id === jobId
+            && e.payload.execution_id === executionId) {
             fetchJobExecutionInfo();
         }
     })
 
+    fetchJobExecutionInfo();
     return {
         onDisconnected: () => {
-            if (refreshInterval != null) { clearInterval(refreshInterval); }
             stopListeningEvents();
         },
         render: () => (
-            h('div', {}, [
-                h('div', { class: `status-line ${getExecutionStatusClass()}` }, getExecutionStatus() || '...'),
-                ...(getExecutionStatus() === 'running' ? [
-                    h('div', { class: 'x-section' }, [
-                        h('button', { type: 'button', onclick: cancelJobExecution }, 'cancel')
-                    ]),
-                ] : []),
-                h('pre', {}, jobExecutionLog)
-            ])
+            h('div', { class: `status-line ${getExecutionStatusClass()}` }, getExecutionStatus() || '...')
+        )
+    }
+})
+
+component('x-job-execution-top-bar', (c) => {
+    const jobId = c.getAttribute('job-id');
+    const executionId = c.getAttribute('execution-id');
+
+    let jobExecution = null;
+
+    const cancelJobExecution = async () => {
+        await fetch(`/api/jobs/executions/cancel?job_id=${getJobId()}&execution_id=${getExecutionId()}`, { method: 'POST' })
+    }
+
+    const fetchJobExecutionInfo = () => {
+        fetch(`/api/jobs/executions/get?job_id=${jobId}&execution_id=${executionId}`)
+            .then(r => r.json())
+            .then(result => {
+                jobExecution = result
+                c.refresh()
+            })
+    }
+
+    const getExecutionStatus = () => {
+        return jobExecution ? jobExecution.status : '';
+    }
+
+    const stopListeningEvents = ServitorEvents.listen((e) => {
+        if (
+            e.id === "job_execution_status_changed"
+            && e.payload.job_id === jobId
+            && e.payload.execution_id === executionId) {
+            fetchJobExecutionInfo();
+        }
+    })
+
+    fetchJobExecutionInfo();
+    return {
+        onDisconnected: () => {
+            stopListeningEvents();
+        },
+        render: () => (
+            getExecutionStatus() === 'running'
+                ? h('div', { class: 'x-section' }, [
+                    h('button', { type: 'button', onclick: cancelJobExecution }, 'cancel')
+                ])
+                : null
+        )
+    }
+})
+
+component('x-job-execution-logs', (c) => {
+    const jobId = c.getAttribute('job-id');
+    const executionId = c.getAttribute('execution-id');
+    let log = '';
+
+    const fetchController = new AbortController();
+
+    async function fetchLog() {
+        try {
+            await Networking.fetchChunks(
+                `/api/jobs/executions/logs/get?job_id=${jobId}&execution_id=${executionId}`,
+                fetchController,
+                (chunk) => {
+                    log += chunk;
+                    c.refresh();
+                }
+            )
+        } catch (err) { }
+    }
+    fetchLog();
+
+    return {
+        onDisconnected: () => {
+            fetchController.abort()
+        },
+        render: () => (
+            h('pre', {}, log)
         )
     }
 })

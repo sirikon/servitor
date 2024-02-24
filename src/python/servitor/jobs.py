@@ -43,7 +43,6 @@ def run_job(job_id: str, execution_id: str):
 
     event_bus_client.listen(listen_for_cancellation)
     try:
-        database.set_job_execution_status(job_id, execution_id, "running")
         makedirs(job_execution_paths.logs_dir, exist_ok=True)
         with open(job_execution_paths.main_log_file, "w") as job_log:
             process = Popen(
@@ -54,6 +53,7 @@ def run_job(job_id: str, execution_id: str):
                 stdin=DEVNULL,
                 start_new_session=True,
             )
+            database.set_job_execution_status(job_id, execution_id, "running")
             exit_code = process.wait()
     except Exception as ex:
         final_status = "failure"

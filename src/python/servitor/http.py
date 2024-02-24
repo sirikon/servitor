@@ -1,7 +1,8 @@
 import http.server
 import threading
 import json
-from os import sep, getenv
+import time
+from os import getcwd, sep, getenv
 from mimetypes import guess_type
 from os.path import join, normpath
 from urllib.parse import urlparse, parse_qs
@@ -10,6 +11,7 @@ from servitor.framework.http import reply, reply_json, reply_not_found, route
 from servitor.jobs import (
     get_jobs,
 )
+from servitor.paths import JobExecutionPathsBuilder, JobPathsBuilder
 from servitor.shared_memory import JobQueueItem, get_shared_memory
 from servitor.event_bus import get_event_bus_client
 from servitor.database import database
@@ -81,14 +83,54 @@ def configure_routes():
     @route("GET", r"^/api/jobs/executions/logs/get$")
     def _(ctx: http.server.BaseHTTPRequestHandler):
         query = parse_qs(urlparse(ctx.path).query)
-        reply(
-            ctx,
-            200,
-            "text/plain",
-            database.get_job_execution_log(
-                query["job_id"][0], query["execution_id"][0]
-            ),
-        )
+        job_id = query["job_id"][0]
+        execution_id = query["execution_id"][0]
+        job_paths = JobPathsBuilder(getcwd(), job_id)
+        job_execution_paths = JobExecutionPathsBuilder(job_paths, execution_id)
+
+        event_bus_client = get_event_bus_client()
+        done = threading.Event()
+
+        def on_message(msg):
+            if (
+                msg["id"] == "job_execution_status_changed"
+                and msg["payload"]["job_id"] == job_id
+                and msg["payload"]["execution_id"] == execution_id
+            ):
+                done.set()
+
+        try:
+            if database.get_job_execution_status(job_id, execution_id) != "running":
+                done.set()
+            if not done.is_set():
+                event_bus_client.listen(on_message)
+            with open(job_execution_paths.main_log_file, "br") as f:
+                ctx.send_response(200)
+                ctx.send_header("Content-Type", f"text/plain; charset=utf-8")
+                ctx.send_header("Transfer-Encoding", "chunked")
+                ctx.end_headers()
+                while True:
+                    chunk = f.read()
+                    chunk_size = len(chunk)
+
+                    if chunk_size > 0:
+                        try:
+                            ctx.wfile.write(f"{chunk_size:x}\r\n".encode())
+                            ctx.wfile.write(chunk)
+                            ctx.wfile.write(f"\r\n".encode())
+                        except Exception:
+                            break
+                    if done.is_set():
+                        try:
+                            ctx.wfile.write(f"{0:x}\r\n\r\n".encode())
+                        except Exception:
+                            pass
+                        break
+                    time.sleep(0.1)
+        except FileNotFoundError:
+            reply_not_found(ctx)
+        finally:
+            event_bus_client.unlisten(on_message)
 
     ui_root = getenv("SERVITOR_UI_ROOT")
     if ui_root is not None:
