@@ -183,11 +183,7 @@ const Rendering = (() => {
             refresh() {
                 if (!this.connected) return;
                 const renderResult = this.render();
-                if (renderResult != null) {
-                    this.replaceChildren(...(Array.isArray(renderResult) ? renderResult : [renderResult]));
-                } else {
-                    this.innerHTML = '';
-                }
+                applyDomChanges(this, renderResult);
                 for (const hookState of this.__hookState) {
                     if (hookState.layoutEffect) {
                         hookState.layoutEffect()
@@ -220,6 +216,72 @@ const Rendering = (() => {
         }
         customElements.define(tag, Component)
     }
+
+    function applyDomChanges(root, content) {
+        if (content == null) {
+            root.innerHTML = '';
+            return;
+        }
+
+        const oldNodes = Array.prototype.slice.call(root.childNodes);
+        const newNodes = (Array.isArray(content) ? content : [content]);
+
+        // If extra elements in DOM, remove them
+        const leftOverElements = oldNodes.length - newNodes.length;
+        for (let i = leftOverElements; i > 0; i--) {
+            const el = oldNodes[oldNodes.length - i];
+            el.parentNode.removeChild(el);
+        }
+
+        for (const i in newNodes) {
+            const newNode = newNodes[i];
+            const oldNode = oldNodes[i];
+
+            if (!oldNode) {
+                root.appendChild(newNode.cloneNode(true));
+                continue;
+            }
+
+            if (getNodeType(newNode) !== getNodeType(oldNode)) {
+                oldNode.parentNode.replaceChild(newNode.cloneNode(true), oldNode);
+                continue;
+            }
+
+            const newNodeContent = getNodeContent(newNode);
+            if (newNodeContent && newNodeContent !== getNodeContent(oldNode)) {
+                oldNode.textContent = newNodeContent;
+            }
+
+            if (oldNode.childNodes.length > 0 && newNode.childNodes.length === 0) {
+                oldNode.innerHTML = '';
+                continue;
+            }
+
+            if (oldNode.childNodes.length === 0 && newNode.childNodes.length > 0) {
+                const fragment = document.createDocumentFragment();
+                applyDomChanges(fragment, newNode);
+                oldNode.appendChild(fragment);
+                continue;
+            }
+
+            if (newNode.childNodes.length > 0) {
+                applyDomChanges(oldNode, newNode);
+            }
+        }
+
+    }
+
+    function getNodeType(node) {
+        if (node.nodeType === 3) return 'text';
+        if (node.nodeType === 8) return 'comment';
+        return node.tagName.toLowerCase();
+    };
+
+    function getNodeContent(node) {
+        if (node.childNodes && node.childNodes.length > 0) return null;
+        return node.textContent;
+    };
+
 
     return { h, component }
 })();
