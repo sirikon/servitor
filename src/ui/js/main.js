@@ -534,20 +534,20 @@ const ROUTES = [
     [/^job_execution$/, 'x-job-execution'],
 ]
 
-component('x-root', () => {
+component('x-router', () => {
     const internalUrl = useInternalUrl();
-    const activePage = (() => {
-        for (const route of ROUTES) {
-            const [matcher, component] = route;
-            if (matcher.test(internalUrl.pathname)) {
-                return h(component)
-            }
+    for (const route of ROUTES) {
+        const [matcher, component] = route;
+        if (matcher.test(internalUrl.pathname)) {
+            return h(component)
         }
-    })()
+    }
+})
 
+component('x-root', () => {
     return h('div', {}, [
         h('x-header'),
-        activePage
+        h('x-router')
     ])
 })
 
