@@ -1,5 +1,107 @@
 'use strict';
 
+// #region Hooks
+
+const Hooks = (() => {
+
+    const context = {};
+    function resetContext() {
+        context.component = null;
+        context.states = null;
+        context.hookCounter = 0;
+    }
+
+    function withComponent(component, states, cb) {
+        if (component.__hookState == null) {
+            component.__hookState = [];
+        }
+        resetContext();
+        context.component = component;
+        context.states = states;
+        let result;
+        try {
+            result = cb();
+        } catch (err) {
+            console.error(err);
+        }
+        resetContext();
+        return result;
+    }
+
+    function useHook(cb) {
+        if (context.component == null) {
+            throw new Error("Hook used outside of element")
+        }
+        context.states[context.hookCounter] =
+            context.states[context.hookCounter] || {}
+        const result = cb(context.states[context.hookCounter]);
+        context.hookCounter++;
+        return result;
+    }
+
+    function useEffect(cb, busters) {
+        return useHook((state) => {
+            if (!state.firstRun || !bustersAreEqual(state.busters, busters)) {
+                state.firstRun = true;
+                state.busters = busters;
+                if (state.cleanup != null) {
+                    state.cleanup();
+                }
+                state.cleanup = cb();
+            }
+        });
+    }
+
+    function bustersAreEqual(oldBusters, newBusters) {
+        if (oldBusters.length != newBusters.length) {
+            return false;
+        }
+        for (let i = 0; i < oldBusters.length; i++) {
+            if (oldBusters[i] != newBusters[i]) {
+                return false
+            }
+        }
+        return true
+    }
+
+    function useState(initialValue) {
+        return useHook((state) => {
+            if (!state.initialized) {
+                state.initialized = true;
+                state.component = context.component;
+                state.value = initialValue;
+            }
+            if (state.setter == null) {
+                state.setter = (_param) => {
+                    const newValue = typeof _param === "function"
+                        ? _param(state.value)
+                        : _param;
+                    state.value = newValue;
+                    if (context.component == null) {
+                        state.component.refresh();
+                    }
+                }
+            }
+            return [state.value, state.setter];
+        });
+    }
+
+    function useCallback(cb, busters) {
+        const [storedCb, setStoredCb] = useState(cb);
+        useEffect(() => {
+            setStoredCb(() => cb)
+        }, busters)
+        return storedCb;
+    }
+
+    return { withComponent, useEffect, useState, useCallback }
+})();
+const useEffect = Hooks.useEffect;
+const useState = Hooks.useState;
+const useCallback = Hooks.useCallback;
+
+// #endregion
+
 // #region Rendering
 
 (() => {
@@ -39,81 +141,12 @@
         return [];
     }
 
-    const renderingState = {
-        currentComponent: null,
-        hookCounter: 0
-    };
-
-    function useEffect(cb, busters) {
-        if (renderingState.currentComponent == null) {
-            throw new Error("Hook used outside of element")
-        }
-        if (renderingState.currentComponent.__hookState[renderingState.hookCounter] == null) {
-            renderingState.currentComponent.__hookState[renderingState.hookCounter] = { firstRun: false }
-        }
-        const state = renderingState.currentComponent.__hookState[renderingState.hookCounter];
-        if (!state.firstRun || !bustersAreEqual(state.busters, busters)) {
-            state.firstRun = true;
-            state.busters = busters;
-            if (state.cleanup != null) {
-                state.cleanup();
-            }
-            state.cleanup = cb();
-        }
-        renderingState.hookCounter++;
-    }
-
-    function useState(initialValue) {
-        if (renderingState.currentComponent == null) {
-            throw new Error("Hook used outside of element")
-        }
-        if (renderingState.currentComponent.__hookState[renderingState.hookCounter] == null) {
-            renderingState.currentComponent.__hookState[renderingState.hookCounter] = {
-                component: renderingState.currentComponent,
-                value: initialValue
-            }
-        }
-        const state = renderingState.currentComponent.__hookState[renderingState.hookCounter];
-        if (state.setter == null) {
-            state.setter = (_param) => {
-                const newValue = typeof _param === "function"
-                    ? _param(state.value)
-                    : _param;
-                state.value = newValue;
-                if (renderingState.currentComponent == null) {
-                    state.component.refresh();
-                }
-            }
-        }
-        renderingState.hookCounter++;
-        return [state.value, state.setter];
-    }
-
-    function useCallback(cb, busters) {
-        const [storedCb, setStoredCb] = useState(cb);
-        useEffect(() => {
-            setStoredCb(() => cb)
-        }, busters)
-        return storedCb;
-    }
-
-    function bustersAreEqual(oldBusters, newBusters) {
-        if (oldBusters.length != newBusters.length) {
-            return false;
-        }
-        for (let i = 0; i < oldBusters.length; i++) {
-            if (oldBusters[i] != newBusters[i]) {
-                return false
-            }
-        }
-        return true
-    }
-
     function component(tag, logic) {
         class Component extends HTMLElement {
 
             constructor() {
                 super();
+                this.__hookState = [];
             }
 
             refresh() {
@@ -126,17 +159,7 @@
             }
 
             render() {
-                if (this.__hookState == null) {
-                    this.__hookState = [];
-                }
-                renderingState.currentComponent = this;
-                let result;
-                try {
-                    result = logic(this);
-                } catch (err) { }
-                renderingState.currentComponent = null;
-                renderingState.hookCounter = 0;
-                return result;
+                return Hooks.withComponent(this, this.__hookState, () => logic(this));
             }
 
             connectedCallback() {
@@ -156,9 +179,6 @@
 
     window.h = h;
     window.component = component;
-    window.useEffect = useEffect;
-    window.useState = useState;
-    window.useCallback = useCallback;
 })();
 
 // #endregion
