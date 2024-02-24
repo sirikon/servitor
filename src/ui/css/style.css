@@ -95,3 +95,8 @@ x-job-execution div.status-line.is-running {
 x-job-execution pre {
     margin: 1em;
 }
+
+x-job-execution .follow-logs-button {
+    position: sticky;
+    bottom: 0;
+}

@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+for i in $(seq 1 40); do
+    echo "Line $i"
+done
+
+for i in $(seq 41 500); do
+    echo "Line $i"
+    sleep 0.1
+done

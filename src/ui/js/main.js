@@ -52,6 +52,17 @@ const Hooks = (() => {
         });
     }
 
+    function useElement() {
+        return context.component;
+    }
+
+    function useLayoutEffect(cb, busters) {
+        useEffect(cb, busters);
+        return useHook((state) => {
+            state.layoutEffect = cb;
+        });
+    }
+
     function bustersAreEqual(oldBusters, newBusters) {
         if (oldBusters.length != newBusters.length) {
             return false;
@@ -92,9 +103,11 @@ const Hooks = (() => {
         return storedCb;
     }
 
-    return { withComponent, useEffect, useState, useCallback }
+    return { withComponent, useElement, useEffect, useLayoutEffect, useState, useCallback }
 })();
+const useElement = Hooks.useElement;
 const useEffect = Hooks.useEffect;
+const useLayoutEffect = Hooks.useLayoutEffect;
 const useState = Hooks.useState;
 const useCallback = Hooks.useCallback;
 
@@ -174,6 +187,11 @@ const Rendering = (() => {
                     this.replaceChildren(...(Array.isArray(renderResult) ? renderResult : [renderResult]));
                 } else {
                     this.innerHTML = '';
+                }
+                for (const hookState of this.__hookState) {
+                    if (hookState.layoutEffect) {
+                        hookState.layoutEffect()
+                    }
                 }
             }
 
@@ -525,7 +543,20 @@ component('x-job-execution-logs', ['job-id', 'execution-id'], (attrs) => {
     const jobId = attrs['job-id'];
     const executionId = attrs['execution-id'];
     const log = useJobExecutionLog(jobId, executionId);
-    return h('pre', {}, log);
+
+    const [follow, setFollow] = useState(false);
+    useLayoutEffect(() => {
+        if (follow) {
+            window.document.documentElement.scrollTop = window.document.documentElement.scrollHeight;
+        }
+    }, [follow]);
+
+    return [
+        h('pre', {}, log),
+        h('button',
+            { type: "button", class: "follow-logs-button", onclick: () => setFollow(f => !f) },
+            follow ? "stop following logs" : "follow logs")
+    ]
 })
 
 const ROUTES = [

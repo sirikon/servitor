@@ -100,10 +100,9 @@ def configure_routes():
                 done.set()
 
         try:
+            event_bus_client.listen(on_message)
             if database.get_job_execution_status(job_id, execution_id) != "running":
                 done.set()
-            if not done.is_set():
-                event_bus_client.listen(on_message)
             with open(job_execution_paths.main_log_file, "br") as f:
                 ctx.send_response(200)
                 ctx.send_header("Content-Type", f"text/plain; charset=utf-8")
