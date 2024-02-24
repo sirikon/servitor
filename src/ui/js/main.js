@@ -77,9 +77,7 @@ const Hooks = (() => {
                         ? _param(state.value)
                         : _param;
                     state.value = newValue;
-                    if (context.component == null) {
-                        state.component.refresh();
-                    }
+                    state.component.queueRefresh();
                 }
             }
             return [state.value, state.setter];
@@ -104,7 +102,7 @@ const useCallback = Hooks.useCallback;
 
 // #region Rendering
 
-(() => {
+const Rendering = (() => {
     const EVENT_LISTENER_ATTRIBUTES = ["onclick"]
 
     function h(tag, _props, _children) {
@@ -141,15 +139,36 @@ const useCallback = Hooks.useCallback;
         return [];
     }
 
-    function component(tag, logic) {
+    function component() {
+        const { tag, attributes, logic } = ((args) => {
+            if (args.length === 3) {
+                return { tag: args[0], attributes: args[1], logic: args[2] };
+            } else if (arguments.length === 2) {
+                return { tag: args[0], attributes: [], logic: args[1] };
+            }
+        })(arguments);
+
         class Component extends HTMLElement {
+            static observedAttributes = attributes;
 
             constructor() {
                 super();
                 this.__hookState = [];
+                this.connected = false;
+                this.refreshQueued = false;
+            }
+
+            queueRefresh() {
+                if (this.refreshQueued) return;
+                this.refreshQueued = true;
+                setTimeout(() => {
+                    this.refreshQueued = false;
+                    this.refresh();
+                }, 0);
             }
 
             refresh() {
+                if (!this.connected) return;
                 const renderResult = this.render();
                 if (renderResult != null) {
                     this.replaceChildren(...(Array.isArray(renderResult) ? renderResult : [renderResult]));
@@ -159,14 +178,21 @@ const useCallback = Hooks.useCallback;
             }
 
             render() {
-                return Hooks.withComponent(this, this.__hookState, () => logic(this));
+                const attrs = Object.fromEntries(attributes.map(attr => [attr, this.getAttribute(attr)]));
+                return Hooks.withComponent(this, this.__hookState, () => logic(attrs));
+            }
+
+            attributeChangedCallback(name, oldValue, newValue) {
+                this.queueRefresh();
             }
 
             connectedCallback() {
-                this.refresh();
+                this.connected = true;
+                this.queueRefresh();
             }
 
             disconnectedCallback() {
+                this.connected = false;
                 for (const hookState of (this.__hookState || [])) {
                     if (hookState.cleanup != null) {
                         hookState.cleanup();
@@ -177,9 +203,10 @@ const useCallback = Hooks.useCallback;
         customElements.define(tag, Component)
     }
 
-    window.h = h;
-    window.component = component;
+    return { h, component }
 })();
+const h = Rendering.h;
+const component = Rendering.component;
 
 // #endregion
 
@@ -343,6 +370,7 @@ const Data = (() => {
     function useJobExecutionLog(jobId, executionId) {
         const [log, setLog] = useState('')
         useEffect(() => {
+            setLog('');
             const fetchController = new AbortController();
             async function fetchLog() {
                 try {
@@ -403,7 +431,7 @@ component('x-header', () => {
     ])
 })
 
-component('x-job-list', (c) => {
+component('x-job-list', () => {
     const [jobs] = useJobs();
 
     return h('div', {}, [
@@ -428,7 +456,7 @@ function table(header, rows) {
     )
 }
 
-component('x-job', (c) => {
+component('x-job', () => {
     const internalUrl = useInternalUrl()
     const jobId = internalUrl.searchParams.get('job_id');
     const [jobExecutions] = useJobExecutions(jobId);
@@ -464,9 +492,9 @@ component('x-job-execution', () => {
     ])
 })
 
-component('x-job-execution-status-line', (c) => {
-    const jobId = c.getAttribute('job-id');
-    const executionId = c.getAttribute('execution-id');
+component('x-job-execution-status-line', ['job-id', 'execution-id'], (attrs) => {
+    const jobId = attrs['job-id'];
+    const executionId = attrs['execution-id'];
 
     const [jobExecution] = useJobExecution(jobId, executionId);
     const jobExecutionStatus = jobExecution != null ? jobExecution.status : '';
@@ -475,9 +503,9 @@ component('x-job-execution-status-line', (c) => {
     return h('div', { class: `status-line ${jobExecutionStatusClass}` }, jobExecutionStatus || '...');
 })
 
-component('x-job-execution-top-bar', (c) => {
-    const jobId = c.getAttribute('job-id');
-    const executionId = c.getAttribute('execution-id');
+component('x-job-execution-top-bar', ['job-id', 'execution-id'], (attrs) => {
+    const jobId = attrs['job-id'];
+    const executionId = attrs['execution-id'];
 
     const [jobExecution] = useJobExecution(jobId, executionId);
     const jobExecutionStatus = jobExecution != null ? jobExecution.status : '';
@@ -493,9 +521,9 @@ component('x-job-execution-top-bar', (c) => {
         : null
 })
 
-component('x-job-execution-logs', (c) => {
-    const jobId = c.getAttribute('job-id');
-    const executionId = c.getAttribute('execution-id');
+component('x-job-execution-logs', ['job-id', 'execution-id'], (attrs) => {
+    const jobId = attrs['job-id'];
+    const executionId = attrs['execution-id'];
     const log = useJobExecutionLog(jobId, executionId);
     return h('pre', {}, log);
 })
@@ -506,7 +534,7 @@ const ROUTES = [
     [/^job_execution$/, 'x-job-execution'],
 ]
 
-component('x-root', (c) => {
+component('x-root', () => {
     const internalUrl = useInternalUrl();
     const activePage = (() => {
         for (const route of ROUTES) {
