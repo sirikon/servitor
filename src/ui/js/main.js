@@ -56,7 +56,7 @@ const Hooks = (() => {
         return context.component;
     }
 
-    function useLayoutEffect(cb, busters) {
+    function usePostRenderEffect(cb, busters) {
         useEffect(cb, busters);
         return useHook((state) => {
             state.layoutEffect = cb;
@@ -103,11 +103,11 @@ const Hooks = (() => {
         return storedCb;
     }
 
-    return { withComponent, useElement, useEffect, useLayoutEffect, useState, useCallback }
+    return { withComponent, useElement, useEffect, usePostRenderEffect, useState, useCallback }
 })();
 const useElement = Hooks.useElement;
 const useEffect = Hooks.useEffect;
-const useLayoutEffect = Hooks.useLayoutEffect;
+const usePostRenderEffect = Hooks.usePostRenderEffect;
 const useState = Hooks.useState;
 const useCallback = Hooks.useCallback;
 
@@ -625,7 +625,7 @@ component('x-job-execution-logs', ['job-id', 'execution-id'], (attrs) => {
     const log = useJobExecutionLog(jobId, executionId);
 
     const [follow, setFollow] = useState(false);
-    useLayoutEffect(() => {
+    usePostRenderEffect(() => {
         if (follow) {
             window.document.documentElement.scrollTop = window.document.documentElement.scrollHeight;
         }
