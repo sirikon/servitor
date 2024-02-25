@@ -1,3 +1,5 @@
+from datetime import datetime, timezone, timedelta
+
 from os import getcwd, listdir, makedirs
 from os.path import exists, dirname, isdir, join
 from servitor.paths import JobExecutionPathsBuilder, JobPathsBuilder
@@ -23,6 +25,9 @@ class FileDatabase:
         return {
             "execution_id": execution_id,
             "status": self.get_job_execution_status(job_id, execution_id),
+            "status_history": self.get_job_execution_status_history(
+                job_id, execution_id
+            ),
         }
 
     def create_job_execution(self, job_id: str):
@@ -49,21 +54,28 @@ class FileDatabase:
             self.set_job_execution_status(job_id, execution_id, "created")
             return execution_id
 
-    def get_job_execution_status(self, job_id: str, execution_id: str):
+    def get_job_execution_status_history(self, job_id: str, execution_id: str):
         job_paths = JobPathsBuilder(getcwd(), job_id)
         job_execution_paths = JobExecutionPathsBuilder(job_paths, execution_id)
-        with open(job_execution_paths.status_file, "r") as f:
-            return f.read()
+        with open(job_execution_paths.status_history_file, "r") as f:
+            return [
+                {"timestamp": l[0], "status": l[1].strip()}
+                for l in [l.split("\t") for l in f.readlines()]
+            ]
+
+    def get_job_execution_status(self, job_id: str, execution_id: str):
+        return self.get_job_execution_status_history(job_id, execution_id)[-1]["status"]
 
     def set_job_execution_status(self, job_id: str, execution_id: str, status: str):
         shared_memory = get_shared_memory()
         with shared_memory.state_lock:
+            timestamp = datetime.now(tz=timezone.utc).isoformat()
             job_execution_paths = JobExecutionPathsBuilder(
                 JobPathsBuilder(getcwd(), job_id), execution_id
             )
-            makedirs(dirname(job_execution_paths.status_file), exist_ok=True)
-            with open(job_execution_paths.status_file, "w") as f:
-                f.write(status)
+            makedirs(dirname(job_execution_paths.status_history_file), exist_ok=True)
+            with open(job_execution_paths.status_history_file, "a") as f:
+                f.write(f"{timestamp}\t{status}\n")
             get_event_bus_client().send(
                 "job_execution_status_changed",
                 {"job_id": job_id, "execution_id": execution_id, "status": status},
