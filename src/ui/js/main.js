@@ -168,7 +168,7 @@ const Rendering = (() => {
                 super();
                 this.__hookState = [];
                 this.connected = false;
-                this.refreshQueued = false;
+                this.refreshing = false;
             }
 
             queueRefresh() {
@@ -224,7 +224,7 @@ const Rendering = (() => {
         }
 
         const oldNodes = [...root.childNodes];
-        const newNodes = (Array.isArray(content) ? content : [content]);
+        const newNodes = (Array.isArray(content) ? content : [content]).filter(n => n != null);
 
         const leftOverElements = oldNodes.length - newNodes.length;
         for (let i = leftOverElements; i > 0; i--) {
@@ -622,6 +622,7 @@ component('x-job-execution-top-bar', ['job-id', 'execution-id'], (attrs) => {
 component('x-job-execution-logs', ['job-id', 'execution-id'], (attrs) => {
     const jobId = attrs['job-id'];
     const executionId = attrs['execution-id'];
+    const [jobExecution] = useJobExecution(jobId, executionId);
     const log = useJobExecutionLog(jobId, executionId);
 
     const [follow, setFollow] = useState(false);
@@ -633,9 +634,11 @@ component('x-job-execution-logs', ['job-id', 'execution-id'], (attrs) => {
 
     return [
         h('pre', {}, log),
-        h('button',
-            { type: "button", class: "follow-logs-button", onclick: () => setFollow(f => !f) },
-            follow ? "stop following logs" : "follow logs")
+        jobExecution?.status === "running" ? h('div', { class: 'x-section follow-logs-button' }, [
+            h('button',
+                { type: "button", onclick: () => setFollow(f => !f) },
+                follow ? "stop following logs" : "follow logs")
+        ]) : null
     ]
 })
 
