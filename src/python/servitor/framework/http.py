@@ -56,6 +56,8 @@ def reply_error(ctx: http.server.BaseHTTPRequestHandler):
 
 
 class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
+    protocol_version = "HTTP/1.1"
+
     def do_GET(self):
         handle_request(self, "GET")
 
