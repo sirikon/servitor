@@ -168,7 +168,6 @@ const Rendering = (() => {
                 super();
                 this.__hookState = [];
                 this.connected = false;
-                this.refreshing = false;
             }
 
             queueRefresh() {
@@ -197,12 +196,12 @@ const Rendering = (() => {
             }
 
             attributeChangedCallback(name, oldValue, newValue) {
-                this.queueRefresh();
+                this.refresh();
             }
 
             connectedCallback() {
                 this.connected = true;
-                this.queueRefresh();
+                this.refresh();
             }
 
             disconnectedCallback() {
@@ -237,14 +236,14 @@ const Rendering = (() => {
             const oldNode = oldNodes[i];
 
             if (!oldNode) {
-                root.appendChild(newNode.cloneNode(true));
+                root.appendChild(newNode);
                 continue;
             }
 
             const newNodeType = getNodeType(newNode);
             const oldNodeType = getNodeType(oldNode);
             if (newNodeType !== oldNodeType) {
-                oldNode.parentNode.replaceChild(newNode.cloneNode(true), oldNode);
+                oldNode.parentNode.replaceChild(newNode, oldNode);
                 continue;
             }
 
