@@ -569,10 +569,16 @@ component('x-job', () => {
         ]),
         table([
             h('b', {}, '#'),
+            '',
             'status',
         ], jobExecutions.map(e => [
             h('a', { href: `#job_execution?job_id=${jobId}&execution_id=${e.execution_id}` }, e.execution_id),
-            e.status
+            h('div', {}, [
+                h('div', { class: `status-circle is-${e.status}` }),
+            ]),
+            h('div', {}, [
+                h('span', {}, e.status)
+            ])
         ])),
     ])
 })

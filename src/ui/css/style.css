@@ -1,3 +1,10 @@
+:root {
+    --status-success-color: #199f59;
+    --status-failure-color: #d0314d;
+    --status-running-color: #3867d6;
+    --status-cancelled-color: #444;
+}
+
 body {
     background-color: aliceblue;
     font-family: monospace;
@@ -69,8 +76,42 @@ x-header div.breadcrumb {
     font-size: 1.2em;
 }
 
-x-job .x-table .row.header .cell[data-column="0"] {
+x-job .x-table .cell[data-column="0"] {
     width: 0;
+}
+
+x-job .x-table .cell[data-column="1"] {
+    width: 0;
+    padding-right: 0;
+}
+
+x-job .x-table .cell[data-column="2"] {
+    padding-left: .5em;
+}
+
+x-job .status-circle {
+    display: inline-block;
+    vertical-align: middle;
+    width: .9em;
+    height: .9em;
+    border-radius: 50%;
+    background-color: gray;
+}
+
+x-job .status-circle.is-success {
+    background-color: var(--status-success-color);
+}
+
+x-job .status-circle.is-failure {
+    background-color: var(--status-failure-color);
+}
+
+x-job .status-circle.is-running {
+    background-color: var(--status-running-color);
+}
+
+x-job .status-circle.is-cancelled {
+    background-color: var(--status-cancelled-color);
 }
 
 x-job-execution div.status-line {
@@ -83,19 +124,19 @@ x-job-execution div.status-line {
 }
 
 x-job-execution div.status-line.is-success {
-    background-color: #199f59;
+    background-color: var(--status-success-color);
 }
 
 x-job-execution div.status-line.is-failure {
-    background-color: #d0314d;
+    background-color: var(--status-failure-color);
 }
 
 x-job-execution div.status-line.is-running {
-    background-color: #3867d6;
+    background-color: var(--status-running-color);
 }
 
 x-job-execution div.status-line.is-cancelled {
-    background-color: #444;
+    background-color: var(--status-cancelled-color);
 }
 
 x-job-execution pre {
