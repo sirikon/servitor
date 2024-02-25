@@ -94,6 +94,10 @@ x-job-execution div.status-line.is-running {
     background-color: #3867d6;
 }
 
+x-job-execution div.status-line.is-cancelled {
+    background-color: #444;
+}
+
 x-job-execution pre {
     margin: 1em;
 }

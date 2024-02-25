@@ -28,6 +28,7 @@ class FileDatabase:
             "status_history": self.get_job_execution_status_history(
                 job_id, execution_id
             ),
+            "result": self.get_job_execution_result(job_id, execution_id),
         }
 
     def create_job_execution(self, job_id: str):
@@ -80,6 +81,28 @@ class FileDatabase:
                 "job_execution_status_changed",
                 {"job_id": job_id, "execution_id": execution_id, "status": status},
             )
+
+    def set_job_execution_result(
+        self, job_id: str, execution_id: str, exitcode: int, message: str | None
+    ):
+        shared_memory = get_shared_memory()
+        with shared_memory.state_lock:
+            job_execution_paths = JobExecutionPathsBuilder(
+                JobPathsBuilder(getcwd(), job_id), execution_id
+            )
+            with open(job_execution_paths.result_file, "w") as f:
+                f.write(f"{exitcode}\t{message}")
+
+    def get_job_execution_result(self, job_id: str, execution_id: str):
+        job_execution_paths = JobExecutionPathsBuilder(
+            JobPathsBuilder(getcwd(), job_id), execution_id
+        )
+        try:
+            with open(job_execution_paths.result_file, "r") as f:
+                [exitcode, message] = f.read().split("\t")
+                return {"exitcode": int(exitcode), "message": message}
+        except FileNotFoundError:
+            return None
 
     def get_job_execution_log(self, job_id: str, execution_id: str):
         job_paths = JobPathsBuilder(getcwd(), job_id)

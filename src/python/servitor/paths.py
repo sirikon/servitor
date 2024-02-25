@@ -37,6 +37,10 @@ class JobExecutionPathsBuilder:
         return join(self.execution_dir, "status_history.tsv")
 
     @property
+    def result_file(self):
+        return join(self.execution_dir, "result.tsv")
+
+    @property
     def logs_dir(self):
         return join(self.execution_dir, "logs")
 
