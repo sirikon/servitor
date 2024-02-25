@@ -14,6 +14,10 @@
     --status-failure-color: #d0314d;
     --status-running-color: #3867d6;
     --status-cancelled-color: #444;
+
+    --status-line-vertical-padding: .2em;
+    --status-line-line-height: 1.3em;
+    --status-line-height: calc(var(--status-line-vertical-padding)*2 + var(--status-line-line-height))
 }
 
 body {
@@ -140,7 +144,8 @@ x-job .status-circle.is-cancelled {
 }
 
 x-job-execution div.status-line {
-    padding: .2em .5em .2em 1em;
+    line-height: var(--status-line-line-height);
+    padding: var(--status-line-vertical-padding) .5em var(--status-line-vertical-padding) 1em;
     color: white;
     background-color: gray;
     box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px 0px;
@@ -168,7 +173,12 @@ x-job-execution pre {
     margin: 1em;
 }
 
-x-job-execution-logs .follow-logs-button {
+x-job-execution-top-bar>.x-box {
+    position: sticky;
+    top: var(--status-line-height);
+}
+
+x-job-execution-logs .follow-logs-box.is-sticky {
     position: sticky;
     bottom: 0;
 }

@@ -737,19 +737,18 @@ component('x-job-execution-logs', ['job-id', 'execution-id'], (attrs) => {
 
     return [
         h('pre', {}, log),
-        jobExecution?.status === "running" && h('div', { class: 'x-section follow-logs-button' }, [
-            h('button',
-                { type: "button", onclick: () => setFollow(f => !f) },
-                follow ? "stop following logs" : "follow logs")
-        ]),
-        jobExecution?.result && h('div', { class: 'x-box' }, [
+        h('div', { class: `x-box follow-logs-box ${jobExecution?.status === "running" ? 'is-sticky' : ''}` }, [
             h('p', {}, [
-                h('span', { class: 'x-kv-key' }, 'exit code'),
-                h('span', {}, jobExecution.result.exit_code),
+                jobExecution?.status === "running" && h('button',
+                    { type: "button", onclick: () => setFollow(f => !f) },
+                    follow ? "stop following logs" : "follow logs"),
 
-                jobExecution.result.message && h('span', { class: 'x-kv-sep' }),
-                jobExecution.result.message && h('span', { class: 'x-kv-key' }, 'message'),
-                jobExecution.result.message && h('span', {}, jobExecution.result.message)
+                jobExecution?.result && h('span', { class: 'x-kv-key' }, 'exit code'),
+                jobExecution?.result && h('span', {}, jobExecution.result.exit_code),
+
+                jobExecution?.result?.message && h('span', { class: 'x-kv-sep' }),
+                jobExecution?.result?.message && h('span', { class: 'x-kv-key' }, 'message'),
+                jobExecution?.result?.message && h('span', {}, jobExecution.result.message)
             ])
         ])
     ]
