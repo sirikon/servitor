@@ -701,10 +701,10 @@ component('x-job-execution-top-bar', ['job-id', 'execution-id'], (attrs) => {
 
     return h('div', { class: 'x-box' }, [
         h('p', {}, [
-            start && h('span', {}, 'started: '),
+            start && h('span', { style: 'color: #757575;' }, 'started: '),
             start && h('span', {}, formatTimestamp(start.timestamp)),
             start && h('span', {}, ' '),
-            start && h('span', {}, 'duration: '),
+            start && h('span', { style: 'color: #757575;' }, 'duration: '),
             start && h('x-duration-clock', { "start-timestamp": start.timestamp, "end-timestamp": end?.timestamp || '' }),
             start && h('span', {}, ' '),
             jobExecution.status === "running" && h('button', { type: 'button', onclick: cancelJobExecution }, 'cancel')
