@@ -55,7 +55,7 @@ body {
     border: dashed var(--table-cell-border-color);
     border-width: 0 0 1px 0;
     white-space: nowrap;
-    width: 0;
+    width: 1px;
 }
 
 .x-table .cell:last-child {
