@@ -140,8 +140,8 @@ const Rendering = (() => {
                 continue
             }
 
-            const child = typeof _child === 'string'
-                ? document.createTextNode(_child)
+            const child = ['string', 'number'].includes(typeof _child)
+                ? document.createTextNode(_child.toString())
                 : _child;
             el.appendChild(child);
         }
@@ -225,7 +225,7 @@ const Rendering = (() => {
 
             disconnectedCallback() {
                 this.connected = false;
-                for (const hookState of (this.__hookState || [])) {
+                for (const hookState of this.__hookState) {
                     if (hookState.cleanup != null) {
                         hookState.cleanup();
                     }
@@ -242,7 +242,8 @@ const Rendering = (() => {
         }
 
         const oldNodes = [...root.childNodes];
-        const newNodes = (Array.isArray(content) ? content : [content]).filter(n => n != null);
+        const newNodes = (Array.isArray(content) ? content : [content])
+            .filter(n => n != null && typeof n !== "boolean");
 
         const leftOverElements = oldNodes.length - newNodes.length;
         for (let i = leftOverElements; i > 0; i--) {
@@ -710,10 +711,10 @@ component('x-job-execution-top-bar', ['job-id', 'execution-id'], (attrs) => {
         h('p', {}, [
             start && h('span', { style: 'color: #757575;' }, 'started: '),
             start && h('span', {}, formatTimestamp(start.timestamp)),
-            start && h('span', {}, ' '),
+            start && h('span', { style: 'margin: 0 1em;' }, ''),
             start && h('span', { style: 'color: #757575;' }, 'duration: '),
             start && h('x-duration-clock', { "start-timestamp": start.timestamp, "end-timestamp": end?.timestamp || '' }),
-            start && h('span', {}, ' '),
+            start && h('span', { style: 'margin: 0 1em;' }, ''),
             jobExecution.status === "running" && h('button', { type: 'button', onclick: cancelJobExecution }, 'cancel')
         ])
     ])
@@ -734,11 +735,20 @@ component('x-job-execution-logs', ['job-id', 'execution-id'], (attrs) => {
 
     return [
         h('pre', {}, log),
-        jobExecution?.status === "running" ? h('div', { class: 'x-section follow-logs-button' }, [
+        jobExecution?.status === "running" && h('div', { class: 'x-section follow-logs-button' }, [
             h('button',
                 { type: "button", onclick: () => setFollow(f => !f) },
                 follow ? "stop following logs" : "follow logs")
-        ]) : null
+        ]),
+        jobExecution?.result && h('div', { class: 'x-box' }, [
+            h('p', {}, [
+                h('span', { style: 'color: #757575;' }, 'exit code: '),
+                h('span', {}, jobExecution.result.exit_code),
+                jobExecution.result.message && h('span', { style: 'margin: 0 1em;' }, ''),
+                jobExecution.result.message && h('span', { style: 'color: #757575;' }, 'message: '),
+                jobExecution.result.message && h('span', {}, jobExecution.result.message)
+            ])
+        ])
     ]
 })
 

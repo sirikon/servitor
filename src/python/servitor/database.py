@@ -83,7 +83,7 @@ class FileDatabase:
             )
 
     def set_job_execution_result(
-        self, job_id: str, execution_id: str, exitcode: int, message: str | None
+        self, job_id: str, execution_id: str, exit_code: int, message: str | None
     ):
         shared_memory = get_shared_memory()
         with shared_memory.state_lock:
@@ -91,7 +91,7 @@ class FileDatabase:
                 JobPathsBuilder(getcwd(), job_id), execution_id
             )
             with open(job_execution_paths.result_file, "w") as f:
-                f.write(f"{exitcode}\t{message}")
+                f.write(f"{exit_code}\t{message}\n")
 
     def get_job_execution_result(self, job_id: str, execution_id: str):
         job_execution_paths = JobExecutionPathsBuilder(
@@ -99,8 +99,8 @@ class FileDatabase:
         )
         try:
             with open(job_execution_paths.result_file, "r") as f:
-                [exitcode, message] = f.read().split("\t")
-                return {"exitcode": int(exitcode), "message": message}
+                [exit_code, message] = f.read().split("\t")
+                return {"exit_code": int(exit_code), "message": message.strip()}
         except FileNotFoundError:
             return None
 
