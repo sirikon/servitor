@@ -39,6 +39,12 @@ body {
     padding: .5em 1em;
     border: dashed #d6d6d6;
     border-width: 0 0 1px 0;
+    white-space: nowrap;
+    width: 0;
+}
+
+.x-table .cell:last-child {
+    width: auto;
 }
 
 .x-table .row:last-child .cell {
@@ -76,12 +82,7 @@ x-header div.breadcrumb {
     font-size: 1.2em;
 }
 
-x-job .x-table .cell[data-column="0"] {
-    width: 0;
-}
-
 x-job .x-table .cell[data-column="1"] {
-    width: 0;
     padding-right: 0;
 }
 
