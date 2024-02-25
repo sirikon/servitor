@@ -59,7 +59,7 @@ const Hooks = (() => {
     function usePostRenderEffect(cb, busters) {
         useEffect(cb, busters);
         return useHook((state) => {
-            state.layoutEffect = cb;
+            state.postRenderCallback = cb;
         });
     }
 
@@ -184,8 +184,8 @@ const Rendering = (() => {
                 const renderResult = this.render();
                 applyDomChanges(this, renderResult);
                 for (const hookState of this.__hookState) {
-                    if (hookState.layoutEffect) {
-                        hookState.layoutEffect()
+                    if (hookState.postRenderCallback) {
+                        hookState.postRenderCallback()
                     }
                 }
             }
