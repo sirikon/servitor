@@ -102,11 +102,13 @@ const Hooks = (() => {
     }
 
     function useCallback(cb, busters) {
-        const [storedCb, setStoredCb] = useState(cb);
-        useEffect(() => {
-            setStoredCb(() => cb)
-        }, busters)
-        return storedCb;
+        return useHook((state) => {
+            state.busters = state.busters || [];
+            if (!bustersAreEqual(state.busters, busters)) {
+                state.cb = cb;
+            }
+            return state.cb;
+        });
     }
 
     return { withComponent, useElement, useEffect, usePostRenderEffect, useState, useCallback }
