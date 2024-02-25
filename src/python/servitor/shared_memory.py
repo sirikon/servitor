@@ -9,11 +9,11 @@ class JobQueueItem:
 
 
 class SharedMemory:
-    state_lock: multiprocessing.Lock
+    state_lock: multiprocessing.RLock
     job_queue: multiprocessing.Queue
 
     def __init__(self) -> None:
-        self.state_lock = multiprocessing.Lock()
+        self.state_lock = multiprocessing.RLock()
         self.job_queue = multiprocessing.Queue()
 
 

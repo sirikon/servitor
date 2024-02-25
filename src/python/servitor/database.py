@@ -27,8 +27,7 @@ class FileDatabase:
 
     def create_job_execution(self, job_id: str):
         shared_memory = get_shared_memory()
-        shared_memory.state_lock.acquire()
-        try:
+        with shared_memory.state_lock:
 
             def creation():
                 job_paths = JobPathsBuilder(getcwd(), job_id)
@@ -49,8 +48,6 @@ class FileDatabase:
             execution_id = creation()
             self.set_job_execution_status(job_id, execution_id, "created")
             return execution_id
-        finally:
-            shared_memory.state_lock.release()
 
     def get_job_execution_status(self, job_id: str, execution_id: str):
         job_paths = JobPathsBuilder(getcwd(), job_id)
@@ -59,16 +56,18 @@ class FileDatabase:
             return f.read()
 
     def set_job_execution_status(self, job_id: str, execution_id: str, status: str):
-        job_execution_paths = JobExecutionPathsBuilder(
-            JobPathsBuilder(getcwd(), job_id), execution_id
-        )
-        makedirs(dirname(job_execution_paths.status_file), exist_ok=True)
-        with open(job_execution_paths.status_file, "w") as f:
-            f.write(status)
-        get_event_bus_client().send(
-            "job_execution_status_changed",
-            {"job_id": job_id, "execution_id": execution_id, "status": status},
-        )
+        shared_memory = get_shared_memory()
+        with shared_memory.state_lock:
+            job_execution_paths = JobExecutionPathsBuilder(
+                JobPathsBuilder(getcwd(), job_id), execution_id
+            )
+            makedirs(dirname(job_execution_paths.status_file), exist_ok=True)
+            with open(job_execution_paths.status_file, "w") as f:
+                f.write(status)
+            get_event_bus_client().send(
+                "job_execution_status_changed",
+                {"job_id": job_id, "execution_id": execution_id, "status": status},
+            )
 
     def get_job_execution_log(self, job_id: str, execution_id: str):
         job_paths = JobPathsBuilder(getcwd(), job_id)
