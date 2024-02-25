@@ -4,27 +4,33 @@
 
 const Hooks = (() => {
 
-    const context = {};
-    function resetContext() {
-        context.component = null;
-        context.states = null;
-        context.hookCounter = 0;
-    }
+    const context = {
+        component: null,
+        states: null,
+        hookCounter: 0
+    };
 
     function withComponent(component, states, cb) {
         if (component.__hookState == null) {
             component.__hookState = [];
         }
-        resetContext();
+        const oldContext = {
+            component: context.component,
+            states: context.states,
+            hookCounter: context.hookCounter
+        };
         context.component = component;
         context.states = states;
+        context.hookCounter = 0;
         let result;
         try {
             result = cb();
         } catch (err) {
             console.error(err);
         }
-        resetContext();
+        context.component = oldContext.component;
+        context.states = oldContext.states;
+        context.hookCounter = oldContext.hookCounter;
         return result;
     }
 
@@ -152,6 +158,8 @@ const Rendering = (() => {
         return [];
     }
 
+    class ServitorComponent extends HTMLElement { }
+
     function component() {
         const { tag, attributes, logic } = ((args) => {
             if (args.length === 3) {
@@ -161,7 +169,7 @@ const Rendering = (() => {
             }
         })(arguments);
 
-        class Component extends HTMLElement {
+        class Component extends ServitorComponent {
             static observedAttributes = attributes;
 
             constructor() {
@@ -258,6 +266,10 @@ const Rendering = (() => {
                 for (const attr of newNodeAttributeNames) {
                     oldNode.setAttribute(attr, newNode.getAttribute(attr));
                 }
+            }
+
+            if (oldNode instanceof ServitorComponent) {
+                continue;
             }
 
             for (const event of EVENT_LISTENER_ATTRIBUTES) {
@@ -571,6 +583,8 @@ component('x-job', () => {
             h('b', {}, '#'),
             '',
             'status',
+            'created',
+            'duration',
         ], jobExecutions.map(e => [
             h('a', { href: `#job_execution?job_id=${jobId}&execution_id=${e.execution_id}` }, e.execution_id),
             h('div', {}, [
@@ -578,10 +592,73 @@ component('x-job', () => {
             ]),
             h('div', {}, [
                 h('span', {}, e.status)
-            ])
+            ]),
+            h('div', {}, [
+                h('span', {}, formatTimestamp(e.status_history.find(i => i.status === "created")?.timestamp))
+            ]),
+            h('div', {},
+                (() => {
+                    const start = e.status_history.find(i => i.status === "running");
+                    if (start == null) return '';
+                    if (!["success", "failure", "cancelled"].includes(e.status)) {
+                        return h('x-duration-clock', { "start-timestamp": start.timestamp });
+                    }
+                    const end = e.status_history.find(i => i.status === e.status);
+                    return h('x-duration-clock', { "start-timestamp": start.timestamp, "end-timestamp": end?.timestamp });
+                })()
+            ),
         ])),
     ])
 })
+
+component('x-duration-clock', ["start-timestamp", "end-timestamp"], (attrs) => {
+    const startTimestamp = attrs["start-timestamp"];
+    const endTimestamp = attrs["end-timestamp"];
+    const startDate = new Date(startTimestamp)
+    const endDate = !!endTimestamp ? new Date(endTimestamp) : new Date()
+
+    const [_, setTick] = useState(0);
+    useEffect(() => {
+        if (endTimestamp) return;
+        const interval = setInterval(() => {
+            setTick(t => t + 1);
+        }, 1000)
+        return () => clearInterval(interval);
+    }, [startTimestamp, endTimestamp])
+
+    let duration = endDate - startDate;
+    const minutes = Math.floor(duration / (60 * 1000))
+    duration -= minutes * (60 * 1000);
+    const seconds = Math.floor(duration / (1000))
+
+    const result = [
+        minutes.toString().padStart(2, '0'),
+        seconds.toString().padStart(2, '0'),
+    ].join(':')
+
+    return h('span', {}, result);
+})
+
+function formatTimestamp(timestamp) {
+    if (timestamp == null) return '';
+    const date = new Date(timestamp);
+    return [
+        [
+            date.getFullYear(),
+            (date.getMonth() + 1).toString().padStart(2, '0'),
+            (date.getDate()).toString().padStart(2, '0'),
+        ].join('-'),
+        [
+            date.getHours().toString().padStart(2, '0'),
+            date.getMinutes().toString().padStart(2, '0'),
+            date.getSeconds().toString().padStart(2, '0')
+        ].join(':')
+    ].join(' ');
+}
+
+function formatDuration(startTimestamp, endTimestamp) {
+
+}
 
 component('x-job-execution', () => {
     const internalUrl = useInternalUrl()
