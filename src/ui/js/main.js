@@ -139,6 +139,10 @@ const Rendering = (() => {
         }
 
         for (const _child of children) {
+            if (_child == null || typeof _child === "boolean") {
+                continue
+            }
+
             const child = typeof _child === 'string'
                 ? document.createTextNode(_child)
                 : _child;
@@ -583,7 +587,7 @@ component('x-job', () => {
             h('b', {}, '#'),
             '',
             'status',
-            'created',
+            'started',
             'duration',
         ], jobExecutions.map(e => [
             h('a', { href: `#job_execution?job_id=${jobId}&execution_id=${e.execution_id}` }, e.execution_id),
@@ -594,7 +598,7 @@ component('x-job', () => {
                 h('span', {}, e.status)
             ]),
             h('div', {}, [
-                h('span', {}, formatTimestamp(e.status_history.find(i => i.status === "created")?.timestamp))
+                h('span', {}, formatTimestamp(e.status_history.find(i => i.status === "running")?.timestamp))
             ]),
             h('div', {},
                 (() => {
@@ -604,7 +608,7 @@ component('x-job', () => {
                         return h('x-duration-clock', { "start-timestamp": start.timestamp });
                     }
                     const end = e.status_history.find(i => i.status === e.status);
-                    return h('x-duration-clock', { "start-timestamp": start.timestamp, "end-timestamp": end?.timestamp });
+                    return h('x-duration-clock', { "start-timestamp": start.timestamp, "end-timestamp": end?.timestamp || '' });
                 })()
             ),
         ])),
@@ -656,10 +660,6 @@ function formatTimestamp(timestamp) {
     ].join(' ');
 }
 
-function formatDuration(startTimestamp, endTimestamp) {
-
-}
-
 component('x-job-execution', () => {
     const internalUrl = useInternalUrl()
     const jobId = internalUrl.searchParams.get('job_id');
@@ -688,17 +688,28 @@ component('x-job-execution-top-bar', ['job-id', 'execution-id'], (attrs) => {
     const executionId = attrs['execution-id'];
 
     const [jobExecution] = useJobExecution(jobId, executionId);
-    const jobExecutionStatus = jobExecution != null ? jobExecution.status : '';
 
     const cancelJobExecution = async () => {
         await fetch(`/api/jobs/executions/cancel?job_id=${jobId}&execution_id=${executionId}`, { method: 'POST' })
     }
 
-    return jobExecutionStatus === 'running'
-        ? h('div', { class: 'x-section' }, [
-            h('button', { type: 'button', onclick: cancelJobExecution }, 'cancel')
-        ])
+    if (jobExecution == null) return null;
+    const start = jobExecution.status_history.find(i => i.status === "running");
+    const end = ["success", "failure", "cancelled"].includes(jobExecution.status)
+        ? jobExecution.status_history.find(i => i.status === jobExecution.status)
         : null
+
+    return h('div', { class: 'x-box' }, [
+        h('p', {}, [
+            start && h('span', {}, 'started: '),
+            start && h('span', {}, formatTimestamp(start.timestamp)),
+            start && h('span', {}, ' '),
+            start && h('span', {}, 'duration: '),
+            start && h('x-duration-clock', { "start-timestamp": start.timestamp, "end-timestamp": end?.timestamp || '' }),
+            start && h('span', {}, ' '),
+            jobExecution.status === "running" && h('button', { type: 'button', onclick: cancelJobExecution }, 'cancel')
+        ])
+    ])
 })
 
 component('x-job-execution-logs', ['job-id', 'execution-id'], (attrs) => {
