@@ -709,12 +709,14 @@ component('x-job-execution-top-bar', ['job-id', 'execution-id'], (attrs) => {
 
     return h('div', { class: 'x-box' }, [
         h('p', {}, [
-            start && h('span', { style: 'color: #757575;' }, 'started: '),
+            start && h('span', { class: 'x-kv-key' }, 'started'),
             start && h('span', {}, formatTimestamp(start.timestamp)),
-            start && h('span', { style: 'margin: 0 1em;' }, ''),
-            start && h('span', { style: 'color: #757575;' }, 'duration: '),
+
+            start && h('span', { class: 'x-kv-sep' }),
+            start && h('span', { class: 'x-kv-key' }, 'duration'),
             start && h('x-duration-clock', { "start-timestamp": start.timestamp, "end-timestamp": end?.timestamp || '' }),
-            start && h('span', { style: 'margin: 0 1em;' }, ''),
+
+            start && h('span', { class: 'x-kv-sep' }),
             jobExecution.status === "running" && h('button', { type: 'button', onclick: cancelJobExecution }, 'cancel')
         ])
     ])
@@ -742,10 +744,11 @@ component('x-job-execution-logs', ['job-id', 'execution-id'], (attrs) => {
         ]),
         jobExecution?.result && h('div', { class: 'x-box' }, [
             h('p', {}, [
-                h('span', { style: 'color: #757575;' }, 'exit code: '),
+                h('span', { class: 'x-kv-key' }, 'exit code'),
                 h('span', {}, jobExecution.result.exit_code),
-                jobExecution.result.message && h('span', { style: 'margin: 0 1em;' }, ''),
-                jobExecution.result.message && h('span', { style: 'color: #757575;' }, 'message: '),
+
+                jobExecution.result.message && h('span', { class: 'x-kv-sep' }),
+                jobExecution.result.message && h('span', { class: 'x-kv-key' }, 'message'),
                 jobExecution.result.message && h('span', {}, jobExecution.result.message)
             ])
         ])

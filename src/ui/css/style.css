@@ -1,4 +1,15 @@
 :root {
+    --background-color: aliceblue;
+    --text-color: #262626;
+
+    --box-background-color: white;
+    --box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px 0px;
+
+    --table-cell-border-color: #d6d6d6;
+    --table-header-background-color: #fafafa;
+
+    --kv-key-text-color: #757575;
+
     --status-success-color: #199f59;
     --status-failure-color: #d0314d;
     --status-running-color: #3867d6;
@@ -6,9 +17,9 @@
 }
 
 body {
-    background-color: aliceblue;
+    background-color: var(--background-color);
     font-family: monospace;
-    color: #262626;
+    color: var(--text-color);
 }
 
 .x-section {
@@ -18,14 +29,14 @@ body {
 .x-box {
     margin: 1em 0;
     padding: 1px 1em;
-    background-color: white;
-    box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px 0px;
+    background-color: var(--box-background-color);
+    box-shadow: var(--box-shadow);
 }
 
 .x-table {
     margin: 1em 0;
-    background-color: white;
-    box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px 0px;
+    background-color: var(--box-background-color);
+    box-shadow: var(--box-shadow);
     display: table;
     width: 100%;
 }
@@ -37,7 +48,7 @@ body {
 .x-table .cell {
     display: table-cell;
     padding: .5em 1em;
-    border: dashed #d6d6d6;
+    border: dashed var(--table-cell-border-color);
     border-width: 0 0 1px 0;
     white-space: nowrap;
     width: 0;
@@ -57,13 +68,26 @@ body {
 }
 
 .x-table .header .cell {
-    background-color: #fafafa;
+    background-color: var(--table-header-background-color);
     border-width: 0;
 }
 
+.x-kv-key {
+    color: var(--kv-key-text-color);
+}
+
+.x-kv-key::after {
+    content: ': ';
+    color: var(--kv-key-text-color);
+}
+
+.x-kv-sep {
+    margin: 0 1em;
+}
+
 x-header>div {
-    background-color: white;
-    box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px 0px;
+    background-color: var(--box-background-color);
+    box-shadow: var(--box-shadow);
     padding: 1px 1em;
     display: flex;
     align-items: center;
