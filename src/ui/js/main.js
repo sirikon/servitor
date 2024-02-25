@@ -38,17 +38,36 @@ const Hooks = (() => {
         if (context.component == null) {
             throw new Error("Hook used outside of element")
         }
-        context.states[context.hookCounter] =
+        const state =
+            context.states[context.hookCounter] =
             context.states[context.hookCounter] || {}
-        const result = cb(context.states[context.hookCounter]);
+        const result = cb(state);
         context.hookCounter++;
         return result;
     }
 
+    function useState(initialValue) {
+        return useHook((state) => {
+            if (!state.initialized) {
+                state.initialized = true;
+                state.component = context.component;
+                state.value = initialValue;
+                state.setter = (_arg) => {
+                    const newValue = typeof _arg === "function"
+                        ? _arg(state.value)
+                        : _arg;
+                    state.value = newValue;
+                    state.component.refresh();
+                }
+            }
+            return [state.value, state.setter];
+        });
+    }
+
     function useEffect(cb, busters) {
         return useHook((state) => {
-            if (!state.firstRun || !bustersAreEqual(state.busters, busters)) {
-                state.firstRun = true;
+            if (!state.initialized || !bustersAreEqual(state.busters, busters)) {
+                state.initialized = true;
                 state.busters = busters;
                 if (state.cleanup != null) {
                     state.cleanup();
@@ -58,8 +77,15 @@ const Hooks = (() => {
         });
     }
 
-    function useElement() {
-        return context.component;
+    function useCallback(cb, busters) {
+        return useHook((state) => {
+            if (!state.initialized || !bustersAreEqual(state.busters, busters)) {
+                state.initialized = true;
+                state.busters = busters;
+                state.cb = cb;
+            }
+            return state.cb;
+        });
     }
 
     function usePostRenderEffect(cb, busters) {
@@ -81,39 +107,8 @@ const Hooks = (() => {
         return true
     }
 
-    function useState(initialValue) {
-        return useHook((state) => {
-            if (!state.initialized) {
-                state.initialized = true;
-                state.component = context.component;
-                state.value = initialValue;
-            }
-            if (state.setter == null) {
-                state.setter = (_param) => {
-                    const newValue = typeof _param === "function"
-                        ? _param(state.value)
-                        : _param;
-                    state.value = newValue;
-                    state.component.queueRefresh();
-                }
-            }
-            return [state.value, state.setter];
-        });
-    }
-
-    function useCallback(cb, busters) {
-        return useHook((state) => {
-            state.busters = state.busters || [];
-            if (!bustersAreEqual(state.busters, busters)) {
-                state.cb = cb;
-            }
-            return state.cb;
-        });
-    }
-
-    return { withComponent, useElement, useEffect, usePostRenderEffect, useState, useCallback }
+    return { withComponent, useEffect, usePostRenderEffect, useState, useCallback }
 })();
-const useElement = Hooks.useElement;
 const useEffect = Hooks.useEffect;
 const usePostRenderEffect = Hooks.usePostRenderEffect;
 const useState = Hooks.useState;
@@ -182,25 +177,35 @@ const Rendering = (() => {
                 super();
                 this.__hookState = [];
                 this.connected = false;
-            }
-
-            queueRefresh() {
-                if (this.refreshQueued) return;
-                this.refreshQueued = true;
-                setTimeout(() => {
-                    this.refreshQueued = false;
-                    this.refresh();
-                }, 0);
+                this.refreshing = false;
+                this.refreshQueued = false;
             }
 
             refresh() {
                 if (!this.connected) return;
-                const renderResult = this.render();
-                applyDomChanges(this, renderResult);
-                for (const hookState of this.__hookState) {
-                    if (hookState.postRenderCallback) {
-                        hookState.postRenderCallback()
+                if (this.refreshing) {
+                    this.refreshQueued = true;
+                    return
+                };
+
+                try {
+                    this.refreshing = true;
+                    while (true) {
+                        this.refreshQueued = false;
+                        const renderResult = this.render();
+                        applyDomChanges(this, renderResult);
+                        for (const hookState of this.__hookState) {
+                            if (hookState.postRenderCallback) {
+                                hookState.postRenderCallback()
+                            }
+                        }
+
+                        if (!this.refreshQueued) {
+                            break
+                        }
                     }
+                } finally {
+                    this.refreshing = false;
                 }
             }
 
