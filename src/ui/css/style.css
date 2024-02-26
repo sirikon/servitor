@@ -169,16 +169,17 @@ x-job-execution div.status-line.is-cancelled {
     background-color: var(--status-cancelled-color);
 }
 
-x-job-execution pre {
-    margin: 1em;
-}
-
-x-job-execution-top-bar>.x-box {
+x-job-execution .top-bar.x-box {
     position: sticky;
     top: var(--status-line-height);
 }
 
-x-job-execution-logs .follow-logs-box.is-sticky {
+x-job-execution .follow-logs-box.is-sticky {
     position: sticky;
     bottom: 0;
+}
+
+
+x-job-execution-logs pre {
+    margin: 1em;
 }

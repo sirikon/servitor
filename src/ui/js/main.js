@@ -571,18 +571,6 @@ component('x-job-list', () => {
     ])
 })
 
-function table(header, rows) {
-    return h('div', { class: "x-table" },
-        [
-            ...(header != null && header.length > 0 ? [
-                h('div', { class: "row header" }, header.map((item, i) => h('div', { class: "cell", "data-column": i }, [item])))
-            ] : []),
-            ...rows.map((items, i) => h('div', { class: "row", "data-row": i },
-                items.map((item, i) => h('div', { class: 'cell', "data-column": i }, [item]))))
-        ]
-    )
-}
-
 component('x-job', () => {
     const internalUrl = useInternalUrl()
     const jobId = internalUrl.searchParams.get('job_id');
@@ -629,6 +617,75 @@ component('x-job', () => {
     ])
 })
 
+component('x-job-execution', () => {
+    const internalUrl = useInternalUrl()
+    const jobId = internalUrl.searchParams.get('job_id');
+    const executionId = internalUrl.searchParams.get('execution_id');
+
+    const [jobExecution] = useJobExecution(jobId, executionId);
+
+    const cancelJobExecution = useCallback(() => {
+        fetch(`/api/jobs/executions/cancel?job_id=${jobId}&execution_id=${executionId}`, { method: 'POST' })
+    }, [jobId, executionId])
+
+    const startTimestamp = (jobExecution?.status_history || []).find(i => i.status === "running")?.timestamp || null
+    const endTimestamp = ["success", "failure", "cancelled"].includes(jobExecution?.status)
+        ? jobExecution.status_history.find(i => i.status === jobExecution.status)?.timestamp || null
+        : null
+
+    const [follow, setFollow] = useState(false);
+
+    return h('div', {}, [
+        h('div', { class: `status-line is-${jobExecution?.status || ''}` }, jobExecution?.status || '...'),
+        h('div', { class: 'top-bar x-box' }, [
+            h('p', {}, [
+                startTimestamp && h('span', { class: 'x-kv-key' }, 'started'),
+                startTimestamp && h('span', {}, formatTimestamp(startTimestamp)),
+
+                startTimestamp && h('span', { class: 'x-kv-sep' }),
+                startTimestamp && h('span', { class: 'x-kv-key' }, 'duration'),
+                startTimestamp && h('x-duration-clock', { "start-timestamp": startTimestamp, "end-timestamp": endTimestamp || '' }),
+
+                startTimestamp && h('span', { class: 'x-kv-sep' }),
+                jobExecution?.status === "running" && h('button', { type: 'button', onclick: cancelJobExecution }, 'cancel')
+            ])
+        ]),
+        h('x-job-execution-logs', { 'job-id': jobId, 'execution-id': executionId, 'follow-logs': follow.toString() }),
+        h('div', { class: `x-box follow-logs-box ${jobExecution?.status === "running" ? 'is-sticky' : ''}` }, [
+            h('p', {}, [
+                jobExecution?.status === "running" && h('button',
+                    { type: "button", onclick: () => setFollow(f => !f) },
+                    follow ? "stop following logs" : "follow logs"),
+
+                jobExecution?.result && h('span', { class: 'x-kv-key' }, 'exit code'),
+                jobExecution?.result && h('span', {}, jobExecution.result.exit_code),
+
+                jobExecution?.result?.message && h('span', { class: 'x-kv-sep' }),
+                jobExecution?.result?.message && h('span', { class: 'x-kv-key' }, 'message'),
+                jobExecution?.result?.message && h('span', {}, jobExecution.result.message)
+            ])
+        ])
+    ])
+})
+
+component('x-job-execution-logs', ['job-id', 'execution-id', 'follow-logs'], (attrs) => {
+    const jobId = attrs['job-id'];
+    const executionId = attrs['execution-id'];
+    const followLogs = attrs['follow-logs'];
+    const follow = followLogs === "true";
+    const log = useJobExecutionLog(jobId, executionId);
+
+    usePostRenderEffect(() => {
+        if (follow) {
+            window.document.documentElement.scrollTop = window.document.documentElement.scrollHeight;
+        }
+    }, [follow]);
+
+    return [
+        h('pre', {}, log)
+    ]
+})
+
 component('x-duration-clock', ["start-timestamp", "end-timestamp"], (attrs) => {
     const startTimestamp = attrs["start-timestamp"];
     const endTimestamp = attrs["end-timestamp"];
@@ -657,6 +714,18 @@ component('x-duration-clock', ["start-timestamp", "end-timestamp"], (attrs) => {
     return h('span', {}, result);
 })
 
+function table(header, rows) {
+    return h('div', { class: "x-table" },
+        [
+            ...(header != null && header.length > 0 ? [
+                h('div', { class: "row header" }, header.map((item, i) => h('div', { class: "cell", "data-column": i }, [item])))
+            ] : []),
+            ...rows.map((items, i) => h('div', { class: "row", "data-row": i },
+                items.map((item, i) => h('div', { class: 'cell', "data-column": i }, [item]))))
+        ]
+    )
+}
+
 function formatTimestamp(timestamp) {
     if (timestamp == null) return '';
     const date = new Date(timestamp);
@@ -673,92 +742,6 @@ function formatTimestamp(timestamp) {
         ].join(':')
     ].join(' ');
 }
-
-component('x-job-execution', () => {
-    const internalUrl = useInternalUrl()
-    const jobId = internalUrl.searchParams.get('job_id');
-    const executionId = internalUrl.searchParams.get('execution_id');
-
-    return h('div', {}, [
-        h('x-job-execution-status-line', { 'job-id': jobId, 'execution-id': executionId }),
-        h('x-job-execution-top-bar', { 'job-id': jobId, 'execution-id': executionId }),
-        h('x-job-execution-logs', { 'job-id': jobId, 'execution-id': executionId })
-    ])
-})
-
-component('x-job-execution-status-line', ['job-id', 'execution-id'], (attrs) => {
-    const jobId = attrs['job-id'];
-    const executionId = attrs['execution-id'];
-
-    const [jobExecution] = useJobExecution(jobId, executionId);
-    const jobExecutionStatus = jobExecution != null ? jobExecution.status : '';
-    const jobExecutionStatusClass = jobExecutionStatus ? `is-${jobExecutionStatus}` : ''
-
-    return h('div', { class: `status-line ${jobExecutionStatusClass}` }, jobExecutionStatus || '...');
-})
-
-component('x-job-execution-top-bar', ['job-id', 'execution-id'], (attrs) => {
-    const jobId = attrs['job-id'];
-    const executionId = attrs['execution-id'];
-
-    const [jobExecution] = useJobExecution(jobId, executionId);
-
-    const cancelJobExecution = async () => {
-        await fetch(`/api/jobs/executions/cancel?job_id=${jobId}&execution_id=${executionId}`, { method: 'POST' })
-    }
-
-    if (jobExecution == null) return null;
-    const start = jobExecution.status_history.find(i => i.status === "running");
-    const end = ["success", "failure", "cancelled"].includes(jobExecution.status)
-        ? jobExecution.status_history.find(i => i.status === jobExecution.status)
-        : null
-
-    return h('div', { class: 'x-box' }, [
-        h('p', {}, [
-            start && h('span', { class: 'x-kv-key' }, 'started'),
-            start && h('span', {}, formatTimestamp(start.timestamp)),
-
-            start && h('span', { class: 'x-kv-sep' }),
-            start && h('span', { class: 'x-kv-key' }, 'duration'),
-            start && h('x-duration-clock', { "start-timestamp": start.timestamp, "end-timestamp": end?.timestamp || '' }),
-
-            start && h('span', { class: 'x-kv-sep' }),
-            jobExecution.status === "running" && h('button', { type: 'button', onclick: cancelJobExecution }, 'cancel')
-        ])
-    ])
-})
-
-component('x-job-execution-logs', ['job-id', 'execution-id'], (attrs) => {
-    const jobId = attrs['job-id'];
-    const executionId = attrs['execution-id'];
-    const [jobExecution] = useJobExecution(jobId, executionId);
-    const log = useJobExecutionLog(jobId, executionId);
-
-    const [follow, setFollow] = useState(false);
-    usePostRenderEffect(() => {
-        if (follow) {
-            window.document.documentElement.scrollTop = window.document.documentElement.scrollHeight;
-        }
-    }, [follow]);
-
-    return [
-        h('pre', {}, log),
-        h('div', { class: `x-box follow-logs-box ${jobExecution?.status === "running" ? 'is-sticky' : ''}` }, [
-            h('p', {}, [
-                jobExecution?.status === "running" && h('button',
-                    { type: "button", onclick: () => setFollow(f => !f) },
-                    follow ? "stop following logs" : "follow logs"),
-
-                jobExecution?.result && h('span', { class: 'x-kv-key' }, 'exit code'),
-                jobExecution?.result && h('span', {}, jobExecution.result.exit_code),
-
-                jobExecution?.result?.message && h('span', { class: 'x-kv-sep' }),
-                jobExecution?.result?.message && h('span', { class: 'x-kv-key' }, 'message'),
-                jobExecution?.result?.message && h('span', {}, jobExecution.result.message)
-            ])
-        ])
-    ]
-})
 
 const ROUTES = [
     [/^$/, 'x-job-list'],
