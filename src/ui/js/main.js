@@ -56,8 +56,10 @@ const Hooks = (() => {
                     const newValue = typeof _arg === "function"
                         ? _arg(state.value)
                         : _arg;
-                    state.value = newValue;
-                    state.component.refresh();
+                    if (state.value != newValue) {
+                        state.value = newValue;
+                        state.component.refresh();
+                    }
                 }
             }
             return [state.value, state.setter];
@@ -88,8 +90,7 @@ const Hooks = (() => {
         });
     }
 
-    function usePostRenderEffect(cb, busters) {
-        useEffect(cb, busters);
+    function usePostRenderEffect(cb) {
         return useHook((state) => {
             state.postRenderCallback = cb;
         });
@@ -196,7 +197,7 @@ const Rendering = (() => {
                         applyDomChanges(this, renderResult);
                         for (const hookState of this.__hookState) {
                             if (hookState.postRenderCallback) {
-                                hookState.postRenderCallback()
+                                hookState.postRenderCallback(this);
                             }
                         }
 
@@ -215,7 +216,9 @@ const Rendering = (() => {
             }
 
             attributeChangedCallback(name, oldValue, newValue) {
-                this.refresh();
+                if (oldValue != newValue) {
+                    this.refresh();
+                }
             }
 
             connectedCallback() {
@@ -497,7 +500,6 @@ const Data = (() => {
     function useJobExecutionLog(jobId, executionId) {
         const [log, setLog] = useState('')
         useEffect(() => {
-            setLog('');
             const fetchController = new AbortController();
             async function fetchLog() {
                 try {
@@ -679,7 +681,7 @@ component('x-job-execution-logs', ['job-id', 'execution-id', 'follow-logs'], (at
         if (follow) {
             window.document.documentElement.scrollTop = window.document.documentElement.scrollHeight;
         }
-    }, [follow]);
+    });
 
     return [
         h('pre', {}, log)
