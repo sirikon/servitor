@@ -96,6 +96,12 @@ const Hooks = (() => {
         });
     }
 
+    function useCustomDomPatcher(cb) {
+        return useHook((state) => {
+            state.customDomPatcher = cb;
+        });
+    }
+
     function bustersAreEqual(oldBusters, newBusters) {
         if (oldBusters.length != newBusters.length) {
             return false;
@@ -108,10 +114,11 @@ const Hooks = (() => {
         return true
     }
 
-    return { withComponent, useEffect, usePostRenderEffect, useState, useCallback }
+    return { withComponent, useEffect, usePostRenderEffect, useCustomDomPatcher, useState, useCallback }
 })();
 const useEffect = Hooks.useEffect;
 const usePostRenderEffect = Hooks.usePostRenderEffect;
+const useCustomDomPatcher = Hooks.useCustomDomPatcher;
 const useState = Hooks.useState;
 const useCallback = Hooks.useCallback;
 
@@ -194,7 +201,12 @@ const Rendering = (() => {
                     while (true) {
                         this.refreshQueued = false;
                         const renderResult = this.render();
-                        applyDomChanges(this, renderResult);
+                        const customDomPatcher = this.__hookState.find(s => s.customDomPatcher)?.customDomPatcher;
+                        if (customDomPatcher) {
+                            customDomPatcher(this, renderResult);
+                        } else {
+                            patchDom(this, renderResult);
+                        }
                         for (const hookState of this.__hookState) {
                             if (hookState.postRenderCallback) {
                                 hookState.postRenderCallback(this);
@@ -238,7 +250,7 @@ const Rendering = (() => {
         customElements.define(tag, Component)
     }
 
-    function applyDomChanges(root, content) {
+    function patchDom(root, content) {
         if (content == null || (Array.isArray(content) && content.length === 0)) {
             root.innerHTML = '';
             return;
@@ -303,13 +315,13 @@ const Rendering = (() => {
 
             if (oldNode.childNodes.length === 0 && newNode.childNodes.length > 0) {
                 const fragment = document.createDocumentFragment();
-                applyDomChanges(fragment, [...newNode.childNodes]);
+                patchDom(fragment, [...newNode.childNodes]);
                 oldNode.appendChild(fragment);
                 continue;
             }
 
             if (newNode.childNodes.length > 0) {
-                applyDomChanges(oldNode, [...newNode.childNodes]);
+                patchDom(oldNode, [...newNode.childNodes]);
             }
         }
 
@@ -327,7 +339,7 @@ const Rendering = (() => {
     };
 
 
-    return { h, component }
+    return { h, component, patchDom }
 })();
 const h = Rendering.h;
 const component = Rendering.component;
@@ -683,9 +695,14 @@ component('x-job-execution-logs', ['job-id', 'execution-id', 'follow-logs'], (at
         }
     });
 
-    return [
-        h('pre', {}, log)
-    ]
+    useCustomDomPatcher((el) => {
+        let pre = el.querySelector('pre');
+        if (pre == null) {
+            pre = h('pre', {});
+            el.appendChild(pre);
+        }
+        pre.textContent = log;
+    });
 })
 
 component('x-duration-clock', ["start-timestamp", "end-timestamp"], (attrs) => {
