@@ -46,6 +46,18 @@ const Hooks = (() => {
         return result;
     }
 
+    function useRef(initialValue) {
+        return useHook((state) => {
+            if (!state.initialized) {
+                state.initialized = true;
+                state.ref = {
+                    current: initialValue
+                }
+            }
+            return state.ref;
+        });
+    }
+
     function useState(initialValue) {
         return useHook((state) => {
             if (!state.initialized) {
@@ -114,12 +126,13 @@ const Hooks = (() => {
         return true
     }
 
-    return { withComponent, useEffect, usePostRenderEffect, useCustomDomPatcher, useState, useCallback }
+    return { withComponent, useEffect, usePostRenderEffect, useCustomDomPatcher, useState, useRef, useCallback }
 })();
 const useEffect = Hooks.useEffect;
 const usePostRenderEffect = Hooks.usePostRenderEffect;
 const useCustomDomPatcher = Hooks.useCustomDomPatcher;
 const useState = Hooks.useState;
+const useRef = Hooks.useRef;
 const useCallback = Hooks.useCallback;
 
 // #endregion
@@ -510,7 +523,8 @@ const Data = (() => {
     }
 
     function useJobExecutionLog(jobId, executionId) {
-        const [log, setLog] = useState('')
+        const [_, setTick] = useState(0);
+        const chunksToRender = useRef([]);
         useEffect(() => {
             const fetchController = new AbortController();
             async function fetchLog() {
@@ -519,7 +533,8 @@ const Data = (() => {
                         `/api/jobs/executions/logs/get?job_id=${jobId}&execution_id=${executionId}`,
                         fetchController,
                         (chunk) => {
-                            setLog(l => l + chunk);
+                            chunksToRender.current.push(chunk);
+                            setTick(v => v + 1);
                         }
                     )
                 } catch (err) { }
@@ -527,7 +542,7 @@ const Data = (() => {
             fetchLog();
             return () => fetchController.abort();
         }, [jobId, executionId])
-        return log;
+        return chunksToRender;
     }
 
     return { useJobs, useJobExecutions, useJobExecution, useJobExecutionLog }
@@ -687,7 +702,7 @@ component('x-job-execution-logs', ['job-id', 'execution-id', 'follow-logs'], (at
     const executionId = attrs['execution-id'];
     const followLogs = attrs['follow-logs'];
     const follow = followLogs === "true";
-    const log = useJobExecutionLog(jobId, executionId);
+    const chunksToRender = useJobExecutionLog(jobId, executionId);
 
     usePostRenderEffect(() => {
         if (follow) {
@@ -701,7 +716,10 @@ component('x-job-execution-logs', ['job-id', 'execution-id', 'follow-logs'], (at
             pre = h('pre', {});
             el.appendChild(pre);
         }
-        pre.textContent = log;
+        for (const chunk of chunksToRender.current) {
+            pre.appendChild(document.createTextNode(chunk));
+        }
+        chunksToRender.current.splice(0, chunksToRender.current.length);
     });
 })
 
