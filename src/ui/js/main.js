@@ -702,12 +702,11 @@ component('x-job-execution', () => {
 component('x-job-execution-logs', ['job-id', 'execution-id', 'follow-logs'], (attrs) => {
     const jobId = attrs['job-id'];
     const executionId = attrs['execution-id'];
-    const followLogs = attrs['follow-logs'];
-    const follow = followLogs === "true";
+    const followLogs = attrs['follow-logs'] === "true";
     const log = useJobExecutionLog(jobId, executionId);
 
     usePostRenderEffect(() => {
-        if (follow) {
+        if (followLogs) {
             window.document.documentElement.scrollTop = window.document.documentElement.scrollHeight;
         }
     });
