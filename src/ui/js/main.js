@@ -524,8 +524,10 @@ const Data = (() => {
 
     function useJobExecutionLog(jobId, executionId) {
         const [_, setTick] = useState(true);
-        const chunksToRender = useRef([]);
+        const log = useRef({ reset: true, chunks: [] });
         useEffect(() => {
+            log.current.reset = true;
+            log.current.chunks.splice(0, log.current.chunks.length);
             const fetchController = new AbortController();
             async function fetchLog() {
                 try {
@@ -533,7 +535,7 @@ const Data = (() => {
                         `/api/jobs/executions/logs/get?job_id=${jobId}&execution_id=${executionId}`,
                         fetchController,
                         (chunk) => {
-                            chunksToRender.current.push(chunk);
+                            log.current.chunks.push(chunk);
                             setTick(v => !v);
                         }
                     )
@@ -542,7 +544,7 @@ const Data = (() => {
             fetchLog();
             return () => fetchController.abort();
         }, [jobId, executionId])
-        return chunksToRender;
+        return log;
     }
 
     return { useJobs, useJobExecutions, useJobExecution, useJobExecutionLog }
@@ -702,7 +704,7 @@ component('x-job-execution-logs', ['job-id', 'execution-id', 'follow-logs'], (at
     const executionId = attrs['execution-id'];
     const followLogs = attrs['follow-logs'];
     const follow = followLogs === "true";
-    const chunksToRender = useJobExecutionLog(jobId, executionId);
+    const log = useJobExecutionLog(jobId, executionId);
 
     usePostRenderEffect(() => {
         if (follow) {
@@ -716,10 +718,14 @@ component('x-job-execution-logs', ['job-id', 'execution-id', 'follow-logs'], (at
             pre = h('pre', {});
             el.appendChild(pre);
         }
-        for (const chunk of chunksToRender.current) {
+        if (log.current.reset) {
+            pre.textContent = '';
+            log.current.reset = false;
+        }
+        for (const chunk of log.current.chunks) {
             pre.appendChild(document.createTextNode(chunk));
         }
-        chunksToRender.current.splice(0, chunksToRender.current.length);
+        log.current.chunks.splice(0, log.current.chunks.length);
     });
 })
 
