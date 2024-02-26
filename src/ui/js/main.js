@@ -523,7 +523,7 @@ const Data = (() => {
     }
 
     function useJobExecutionLog(jobId, executionId) {
-        const [_, setTick] = useState(0);
+        const [_, setTick] = useState(true);
         const chunksToRender = useRef([]);
         useEffect(() => {
             const fetchController = new AbortController();
@@ -534,7 +534,7 @@ const Data = (() => {
                         fetchController,
                         (chunk) => {
                             chunksToRender.current.push(chunk);
-                            setTick(v => v + 1);
+                            setTick(v => !v);
                         }
                     )
                 } catch (err) { }
@@ -729,11 +729,11 @@ component('x-duration-clock', ["start-timestamp", "end-timestamp"], (attrs) => {
     const startDate = new Date(startTimestamp)
     const endDate = !!endTimestamp ? new Date(endTimestamp) : new Date()
 
-    const [_, setTick] = useState(0);
+    const [_, setTick] = useState(true);
     useEffect(() => {
         if (endTimestamp) return;
         const interval = setInterval(() => {
-            setTick(t => t + 1);
+            setTick(v => !v);
         }, 1000)
         return () => clearInterval(interval);
     }, [startTimestamp, endTimestamp])
