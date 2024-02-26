@@ -384,59 +384,65 @@ const Networking = (() => {
 // #region Data
 
 const Data = (() => {
-    const MINIMUM_TIME_BETWEEN_RETRIES_MILLIS = 4000;
 
-    const eventListeners = [];
+    const Events = (() => {
+        const eventListeners = [];
 
-    function listenEvents(cb) {
-        eventListeners.push(cb);
-        return () => {
-            const pos = eventListeners.indexOf(cb);
-            eventListeners.splice(pos, 1);
-        }
-    }
-
-    async function connectForever() {
-        while (true) {
-            const startTimestamp = Date.now();
-            try {
-                await fetchEventsForever();
-            } catch (err) {
-                console.debug(err);
+        function listenEvents(cb) {
+            eventListeners.push(cb);
+            return () => {
+                const pos = eventListeners.indexOf(cb);
+                eventListeners.splice(pos, 1);
             }
-            const millisToWait = Math.max((startTimestamp + MINIMUM_TIME_BETWEEN_RETRIES_MILLIS) - Date.now(), 0);
-            await waitMillis(millisToWait);
         }
-    }
 
-    async function waitMillis(ms) {
-        return new Promise((resolve) => setTimeout(() => resolve(null), ms))
-    }
+        const MINIMUM_TIME_BETWEEN_RETRIES_MILLIS = 4000;
 
-    async function fetchEventsForever() {
-        const controller = new AbortController();
-        const response = await fetch('/api/events', { signal: controller.signal });
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        function read() {
-            return reader.read().then((result) => {
-                if (!result.value) return;
-                const msg = JSON.parse(decoder.decode(result.value));
-                eventListeners.slice(0).forEach(cb => cb(msg));
-                return read();
-            });
+        async function connectForever() {
+            while (true) {
+                const startTimestamp = Date.now();
+                try {
+                    await fetchEventsForever();
+                } catch (err) {
+                    console.debug(err);
+                }
+                const millisToWait = Math.max((startTimestamp + MINIMUM_TIME_BETWEEN_RETRIES_MILLIS) - Date.now(), 0);
+                await waitMillis(millisToWait);
+            }
         }
-        return read();
-    }
 
-    connectForever();
+        async function waitMillis(ms) {
+            return new Promise((resolve) => setTimeout(() => resolve(null), ms))
+        }
 
-    function useEvents(cb) {
-        useEffect(() => {
-            const stop = listenEvents(cb);
-            return () => stop();
-        }, [cb])
-    }
+        async function fetchEventsForever() {
+            const controller = new AbortController();
+            const response = await fetch('/api/events', { signal: controller.signal });
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            function read() {
+                return reader.read().then((result) => {
+                    if (!result.value) return;
+                    const msg = JSON.parse(decoder.decode(result.value));
+                    eventListeners.slice(0).forEach(cb => cb(msg));
+                    return read();
+                });
+            }
+            return read();
+        }
+
+        connectForever();
+
+        function useEvents(cb) {
+            useEffect(() => {
+                const stop = listenEvents(cb);
+                return () => stop();
+            }, [cb])
+        }
+
+        return { useEvents }
+    })()
+    const useEvents = Events.useEvents;
 
     function useFetch(url, initialValue) {
         const [iter, setIter] = useState(0);
@@ -510,7 +516,7 @@ const Data = (() => {
         return log;
     }
 
-    return { listenEvents, useJobs, useJobExecutions, useJobExecution, useJobExecutionLog }
+    return { useJobs, useJobExecutions, useJobExecution, useJobExecutionLog }
 })();
 const useJobs = Data.useJobs;
 const useJobExecutions = Data.useJobExecutions;
