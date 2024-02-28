@@ -43,9 +43,7 @@ def configure_routes():
 
     @route("GET", r"^/api/jobs/get_list$")
     def _(ctx: http.server.BaseHTTPRequestHandler):
-        query = parse_qs(urlparse(ctx.path).query)
-        path = query["path"][0] if "path" in query else "."
-        reply_json(ctx, 200, get_jobs(path))
+        reply_json(ctx, 200, get_jobs())
 
     @route("POST", r"^/api/jobs/run$")
     def _(ctx: http.server.BaseHTTPRequestHandler):

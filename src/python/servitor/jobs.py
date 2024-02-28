@@ -1,7 +1,7 @@
 from signal import SIGINT
 from subprocess import Popen, DEVNULL
 from os import getcwd, makedirs, killpg
-from os.path import join, dirname, relpath
+from os.path import join, dirname, relpath, isfile
 from glob import glob
 from stat import S_IXUSR
 from pathlib import Path
@@ -11,15 +11,11 @@ from servitor.database import database
 from servitor.event_bus import get_event_bus_client
 
 
-def get_jobs(path: str):
+def get_jobs():
     def gen():
-        for filename in glob(
-            join(getcwd(), "config", "jobs", path, "**/run"), recursive=True
-        ):
-            if Path(filename).stat().st_mode & S_IXUSR:
-                job_id = dirname(
-                    relpath(filename, join(getcwd(), "config", "jobs", path))
-                )
+        for filename in glob(join(getcwd(), "config", "jobs", "**/*"), recursive=True):
+            if isfile(filename) and Path(filename).stat().st_mode & S_IXUSR:
+                job_id = relpath(filename, join(getcwd(), "config", "jobs"))
                 yield {"job_id": job_id}
 
     return list(gen())

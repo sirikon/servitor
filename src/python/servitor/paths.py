@@ -1,4 +1,4 @@
-from os.path import join
+from os.path import join, dirname
 
 
 class JobPathsBuilder:
@@ -7,12 +7,12 @@ class JobPathsBuilder:
         self._job_id = job_id
 
     @property
-    def home(self):
+    def run_file(self):
         return join(self._root, "config", "jobs", self._job_id)
 
     @property
-    def run_file(self):
-        return join(self.home, "run")
+    def home(self):
+        return dirname(self.run_file)
 
     @property
     def executions_dir(self):
