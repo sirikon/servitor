@@ -451,14 +451,24 @@ const Data = (() => {
             function read() {
                 return reader.read().then((result) => {
                     if (!result.value) return;
-                    let msg;
+                    let decodedValue;
+
                     try {
-                        msg = JSON.parse(decoder.decode(result.value));
+                        decodedValue = decoder.decode(result.value);
                     } catch (err) {
-                        console.debug("Error while parsing event", result.value);
+                        console.debug("Error while decoding event", result.value, err);
                         return read();
                     }
-                    eventListeners.slice(0).forEach(cb => cb(msg));
+
+                    let event;
+                    try {
+                        event = JSON.parse(decodedValue);
+                    } catch (err) {
+                        console.debug("Error while parsing event", result.value, decodedValue, err);
+                        return read();
+                    }
+
+                    eventListeners.slice(0).forEach(cb => cb(event));
                     return read();
                 });
             }
