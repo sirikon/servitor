@@ -451,24 +451,26 @@ const Data = (() => {
             function read() {
                 return reader.read().then((result) => {
                     if (!result.value) return;
-                    let decodedValue;
 
-                    try {
-                        decodedValue = decoder.decode(result.value);
-                    } catch (err) {
-                        console.debug("Error while decoding event", result.value, err);
-                        return read();
+                    const newLinesPositions = result.value
+                        .reduce((result, byte, pos) => {
+                            if (byte === 10) {
+                                result.push(pos);
+                            }
+                            return result;
+                        }, []);
+
+                    const events = [];
+                    let startPos = 0;
+                    for (const newLinePos of newLinesPositions) {
+                        events.push(JSON.parse(decoder.decode(result.value.slice(startPos, newLinePos))));
+                        startPos = newLinePos + 1;
                     }
 
-                    let event;
-                    try {
-                        event = JSON.parse(decodedValue);
-                    } catch (err) {
-                        console.debug("Error while parsing event", result.value, decodedValue, err);
-                        return read();
+                    for (const event of events) {
+                        eventListeners.slice(0).forEach(cb => cb(event));
                     }
 
-                    eventListeners.slice(0).forEach(cb => cb(event));
                     return read();
                 });
             }
