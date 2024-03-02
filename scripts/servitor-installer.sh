@@ -6,8 +6,8 @@ SERVITOR_REPOSITORY="github.com/sirikon/servitor"
 SERVITOR_ROOT="${SYSTEM_ROOT}/opt/servitor"
 SERVITOR_HOME="${SYSTEM_ROOT}/srv/servitor"
 SERVITOR_SYSTEMD_SERVICE="${SYSTEM_ROOT}/etc/systemd/system/servitor.service"
-SERVITOR_UMASK="0077"
 SERVITOR_USER="${SERVITOR_USER:-"root"}"
+SERVITOR_UMASK="${SERVITOR_UMASK:-"0077"}"
 
 function main() {
     git_cmd="$(require_command git)"

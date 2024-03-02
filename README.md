@@ -10,7 +10,7 @@ The default UI and the HTTP API allow exploring jobs, executions, logs, and trig
 
 ### Important technical details
 
-Jobs are executed with the same environment and user used to start servitor. For example: Starting Servitor with the `root` user means that the jobs execute as `root` aswell, without limitations. Plan accordingly.
+Jobs are executed with the same environment and user used to start Servitor. For example: Starting Servitor with the `root` user means that the jobs execute as `root` aswell, without limitations. Plan accordingly.
 
 Servitor exposes an HTTP API through a UNIX socket on `<working_directory>/servitor.sock`. Servitor implements no authentication nor authorization of any kind, which means that a process that can communicate with `servitor.sock` can do anything that the API allows, unrestricted. This socket is created with the permissions `770` to limit the access to the same user and group executing Servitor.
 
@@ -38,7 +38,8 @@ To update a Servitor installation, just run the installer again with the same pa
 
 Available environment variables to configure the installer at execution:
 
-- `SERVITOR_USER` (default: `root`): Change the user that will run the servitor systemd service. It will create the user if it doesn't exist yet.
+- `SERVITOR_USER` (default: `root`): Change the user that will run the Servitor systemd service. It will create the user if it doesn't exist yet.
+- `SERVITOR_UMASK` (default: `0077`): Change the UMask value configured for the Servitor systemd service. By default it is `0077` so everything Servitor creates is only visible for the Servitor user, making exposing files to other users an explicit act.
 
 ## Configure
 
