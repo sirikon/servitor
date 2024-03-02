@@ -6,6 +6,7 @@ SERVITOR_REPOSITORY="github.com/sirikon/servitor"
 SERVITOR_ROOT="${SYSTEM_ROOT}/opt/servitor"
 SERVITOR_HOME="${SYSTEM_ROOT}/srv/servitor"
 SERVITOR_SYSTEMD_SERVICE="${SYSTEM_ROOT}/etc/systemd/system/servitor.service"
+SERVITOR_UMASK="0077"
 SERVITOR_USER="${SERVITOR_USER:-"root"}"
 
 function main() {
@@ -34,9 +35,12 @@ function main() {
         fi
     fi
 
-    log "Ensuring servitor home directory exists and has the correct permissions"
-    mkdir -p "$SERVITOR_HOME"
-    chown -R "${SERVITOR_USER}:${SERVITOR_USER}" "$SERVITOR_HOME"
+    (
+        umask "$SERVITOR_UMASK"
+        log "Ensuring servitor home directory exists and has the correct permissions"
+        mkdir -p "$SERVITOR_HOME"
+        chown -R "${SERVITOR_USER}:${SERVITOR_USER}" "$SERVITOR_HOME"
+    )
 
     log "Installing systemd service"
     mkdir -p "$(dirname "$SERVITOR_SYSTEMD_SERVICE")"
@@ -76,6 +80,7 @@ WorkingDirectory=${SERVITOR_HOME}
 Environment="PYTHONPATH=${SERVITOR_ROOT}/src/python"
 Environment="SERVITOR_UI_ROOT=${SERVITOR_ROOT}/src/ui"
 ExecStart=/usr/bin/python3 -m servitor
+UMask=${SERVITOR_UMASK}
 
 [Install]
 WantedBy=multi-user.target
