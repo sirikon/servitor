@@ -37,7 +37,7 @@ function main() {
 
     log "Ensuring servitor home directory exists and has the correct permissions"
     mkdir -p "$SERVITOR_HOME"
-    chown -R "${SERVITOR_USER}:${SERVITOR_USER}" "$SERVITOR_HOME"
+    chown "${SERVITOR_USER}:${SERVITOR_USER}" "$SERVITOR_HOME"
 
     log "Installing systemd service"
     mkdir -p "$(dirname "$SERVITOR_SYSTEMD_SERVICE")"
