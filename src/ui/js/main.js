@@ -636,9 +636,9 @@ component('x-job', () => {
 
     const onClickRun = async () => {
         const inputValuesQueryParams = Object.keys(inputValues).map(key => {
-            return `input_value_${key}=${encodeURIComponent(inputValues[key])}`
-        }).join('&');
-        await fetch(`/api/jobs/run?job_id=${jobId}&${inputValuesQueryParams}`, { method: 'POST' });
+            return `&input_value_${key}=${encodeURIComponent(inputValues[key])}`
+        }).join('');
+        await fetch(`/api/jobs/run?job_id=${jobId}${inputValuesQueryParams}`, { method: 'POST' });
     }
 
     return h('div', {}, [

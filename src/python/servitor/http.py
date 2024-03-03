@@ -58,8 +58,11 @@ def configure_routes():
         job_id = query["job_id"][0]
         job_paths = JobPathsBuilder(getcwd(), job_id)
 
-        with open(job_paths.input_spec_file, "r") as f:
-            input_spec = json.load(f)
+        try:
+            with open(job_paths.input_spec_file, "r") as f:
+                input_spec = json.load(f)
+        except FileNotFoundError:
+            input_spec = {}
         input_values = {}
         for key in query:
             if key.startswith("input_value_"):
