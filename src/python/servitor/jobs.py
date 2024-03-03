@@ -25,18 +25,17 @@ def get_jobs():
 def get_job(job_id: str):
     job_paths = JobPathsBuilder(getcwd(), job_id)
     try:
-        with open(job_paths.input_file, "r") as f:
-            input = json.load(f)
+        with open(job_paths.input_spec_file, "r") as f:
+            input_spec = json.load(f)
     except FileNotFoundError:
-        input = {}
-    return {"job_id": job_id, "input": input}
+        input_spec = {}
+    return {"job_id": job_id, "input_spec": input_spec}
 
 
 def run_job(job_id: str, execution_id: str):
     job_paths = JobPathsBuilder(getcwd(), job_id)
     job_execution_paths = JobExecutionPathsBuilder(job_paths, execution_id)
-    with open(job_execution_paths.input_file, "r") as f:
-        input = json.load(f)
+    input = get_job_execution_input(job_id, execution_id)
     event_bus_client = get_event_bus_client()
 
     process: Popen = None
@@ -89,3 +88,11 @@ def run_job(job_id: str, execution_id: str):
         database.set_job_execution_result(
             job_id, execution_id, result_exit_code, result_message
         )
+
+
+def get_job_execution_input(job_id: str, execution_id: str):
+    job_paths = JobPathsBuilder(getcwd(), job_id)
+    job_execution_paths = JobExecutionPathsBuilder(job_paths, execution_id)
+    with open(job_execution_paths.input_values_file, "r") as f:
+        input = json.load(f)
+    return input

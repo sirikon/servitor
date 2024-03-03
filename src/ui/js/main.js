@@ -632,17 +632,17 @@ component('x-job', () => {
     const [jobExecutions] = useJobExecutions(jobId);
 
     const [inputValues, setInputValues] = useState({});
-    const inputCount = Object.keys(job?.input || {}).length;
+    const inputCount = Object.keys(job?.input_spec || {}).length;
 
     const onClickRun = async () => {
-        const inputQueryParam = encodeURIComponent(JSON.stringify(inputValues));
-        await fetch(`/api/jobs/run?job_id=${jobId}&input=${inputQueryParam}`, { method: 'POST' });
+        const inputValuesQueryParam = encodeURIComponent(JSON.stringify(inputValues));
+        await fetch(`/api/jobs/run?job_id=${jobId}&input_values=${inputValuesQueryParam}`, { method: 'POST' });
     }
 
     return h('div', {}, [
         job != null && inputCount > 0 && h('div', { class: 'x-section' }, [
             h('p', {}, [
-                ...Object.keys(job.input).map((key) => {
+                ...Object.keys(job.input_spec).map((key) => {
                     return [
                         h('label', {}, `${key}: `),
                         h('input', {

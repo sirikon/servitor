@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 
 from os import getcwd, listdir, makedirs
 from os.path import exists, dirname, isdir, join
+from typing import Any
 from servitor.paths import JobExecutionPathsBuilder, JobPathsBuilder
 from servitor.shared_memory import get_shared_memory
 from servitor.event_bus import get_event_bus_client
@@ -32,7 +33,7 @@ class FileDatabase:
             "result": self.get_job_execution_result(job_id, execution_id),
         }
 
-    def create_job_execution(self, job_id: str, input):
+    def create_job_execution(self, job_id: str, input_values: Any):
         shared_memory = get_shared_memory()
         with shared_memory.state_lock:
             job_paths = JobPathsBuilder(getcwd(), job_id)
@@ -55,8 +56,8 @@ class FileDatabase:
             execution_id = creation()
             self.set_job_execution_status(job_id, execution_id, "created")
             job_execution_paths = JobExecutionPathsBuilder(job_paths, execution_id)
-            with open(job_execution_paths.input_file, "w") as f:
-                f.write(json.dumps(input, indent=2) + "\n")
+            with open(job_execution_paths.input_values_file, "w") as f:
+                f.write(json.dumps(input_values, indent=2) + "\n")
             return execution_id
 
     def get_job_execution_status_history(self, job_id: str, execution_id: str):

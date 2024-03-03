@@ -11,7 +11,7 @@ class JobPathsBuilder:
         return join(self._root, "config", "jobs", self._job_id)
 
     @property
-    def input_file(self):
+    def input_spec_file(self):
         return f"{self.run_file}.input.json"
 
     @property
@@ -37,7 +37,7 @@ class JobExecutionPathsBuilder:
         return join(self._job_paths.executions_dir, self._execution_id)
 
     @property
-    def input_file(self):
+    def input_values_file(self):
         return join(self.execution_dir, "input.json")
 
     @property
