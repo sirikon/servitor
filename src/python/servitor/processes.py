@@ -2,7 +2,7 @@ import queue
 import signal
 import threading
 from time import sleep
-from os import getcwd, remove, chmod
+from os import getcwd, makedirs, remove, chmod
 from os.path import join, exists
 from servitor.framework.http import UnixHTTPServer
 
@@ -29,7 +29,9 @@ def start_web_server(shared_memory: SharedMemory, event_bus_client: EventBusClie
     event_bus_client.start()
     log.info("starting web server")
     configure_routes()
-    sock_path = join(getcwd(), "servitor.sock")
+    sockets_dir = join(getcwd(), "sockets")
+    makedirs(sockets_dir, exist_ok=True)
+    sock_path = join(sockets_dir, "servitor.sock")
     if exists(sock_path):
         remove(sock_path)
     httpd = UnixHTTPServer(sock_path, HTTPRequestHandler)
@@ -38,6 +40,7 @@ def start_web_server(shared_memory: SharedMemory, event_bus_client: EventBusClie
 
     while True:
         if exists(sock_path):
+            chmod(sockets_dir, 0o770)
             chmod(sock_path, 0o770)
             break
         sleep(0.1)

@@ -12,7 +12,7 @@ function main() { (
     export PYTHONPATH="${root}/src/python"
     export SERVITOR_UI_ROOT="${root}/src/ui"
 
-    "${socat_cmd}" "TCP-LISTEN:${TCP_PORT},fork" "UNIX-CLIENT:./servitor.sock" &
+    "${socat_cmd}" "TCP-LISTEN:${TCP_PORT},fork" "UNIX-CLIENT:./sockets/servitor.sock" &
     proxy_pid=$!
     echo "### started proxy on PID $proxy_pid"
     echo "### http://127.0.0.1:${TCP_PORT}/"
