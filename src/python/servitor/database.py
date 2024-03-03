@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timezone
 
 from os import getcwd, listdir, makedirs
@@ -31,12 +32,12 @@ class FileDatabase:
             "result": self.get_job_execution_result(job_id, execution_id),
         }
 
-    def create_job_execution(self, job_id: str):
+    def create_job_execution(self, job_id: str, input):
         shared_memory = get_shared_memory()
         with shared_memory.state_lock:
+            job_paths = JobPathsBuilder(getcwd(), job_id)
 
             def creation():
-                job_paths = JobPathsBuilder(getcwd(), job_id)
                 makedirs(job_paths.executions_dir, exist_ok=True)
                 if exists(job_paths.last_execution_file):
                     with open(job_paths.last_execution_file, "r+") as f:
@@ -53,6 +54,9 @@ class FileDatabase:
 
             execution_id = creation()
             self.set_job_execution_status(job_id, execution_id, "created")
+            job_execution_paths = JobExecutionPathsBuilder(job_paths, execution_id)
+            with open(job_execution_paths.input_file, "w") as f:
+                f.write(json.dumps(input, indent=2) + "\n")
             return execution_id
 
     def get_job_execution_status_history(self, job_id: str, execution_id: str):

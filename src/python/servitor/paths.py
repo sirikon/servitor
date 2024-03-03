@@ -11,6 +11,10 @@ class JobPathsBuilder:
         return join(self._root, "config", "jobs", self._job_id)
 
     @property
+    def input_file(self):
+        return f"{self.run_file}.input.json"
+
+    @property
     def home(self):
         return dirname(self.run_file)
 
@@ -31,6 +35,10 @@ class JobExecutionPathsBuilder:
     @property
     def execution_dir(self):
         return join(self._job_paths.executions_dir, self._execution_id)
+
+    @property
+    def input_file(self):
+        return join(self.execution_dir, "input.json")
 
     @property
     def status_history_file(self):

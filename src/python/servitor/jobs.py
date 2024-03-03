@@ -1,6 +1,7 @@
+import json
 from signal import SIGINT
 from subprocess import Popen, DEVNULL
-from os import getcwd, makedirs, killpg
+from os import getcwd, makedirs, killpg, environ
 from os.path import join, dirname, relpath, isfile
 from glob import glob
 from stat import S_IXUSR
@@ -16,14 +17,26 @@ def get_jobs():
         for filename in glob(join(getcwd(), "config", "jobs", "**/*"), recursive=True):
             if isfile(filename) and Path(filename).stat().st_mode & S_IXUSR:
                 job_id = relpath(filename, join(getcwd(), "config", "jobs"))
-                yield {"job_id": job_id}
+                yield get_job(job_id)
 
     return list(gen())
+
+
+def get_job(job_id: str):
+    job_paths = JobPathsBuilder(getcwd(), job_id)
+    try:
+        with open(job_paths.input_file, "r") as f:
+            input = json.load(f)
+    except FileNotFoundError:
+        input = {}
+    return {"job_id": job_id, "input": input}
 
 
 def run_job(job_id: str, execution_id: str):
     job_paths = JobPathsBuilder(getcwd(), job_id)
     job_execution_paths = JobExecutionPathsBuilder(job_paths, execution_id)
+    with open(job_execution_paths.input_file, "r") as f:
+        input = json.load(f)
     event_bus_client = get_event_bus_client()
 
     process: Popen = None
@@ -53,6 +66,7 @@ def run_job(job_id: str, execution_id: str):
                 stderr=job_log,
                 stdin=DEVNULL,
                 start_new_session=True,
+                env=dict(environ, **input),
             )
             database.set_job_execution_status(job_id, execution_id, "running")
             exit_code = process.wait()

@@ -9,6 +9,7 @@ from urllib.parse import urlparse, parse_qs
 
 from servitor.framework.http import reply, reply_json, reply_not_found, route
 from servitor.jobs import (
+    get_job,
     get_jobs,
 )
 from servitor.paths import JobExecutionPathsBuilder, JobPathsBuilder
@@ -45,11 +46,18 @@ def configure_routes():
     def _(ctx: http.server.BaseHTTPRequestHandler):
         reply_json(ctx, 200, get_jobs())
 
+    @route("GET", r"^/api/jobs/get$")
+    def _(ctx: http.server.BaseHTTPRequestHandler):
+        query = parse_qs(urlparse(ctx.path).query)
+        job_id = query["job_id"][0]
+        reply_json(ctx, 200, get_job(job_id))
+
     @route("POST", r"^/api/jobs/run$")
     def _(ctx: http.server.BaseHTTPRequestHandler):
         query = parse_qs(urlparse(ctx.path).query)
         job_id = query["job_id"][0]
-        execution_id = database.create_job_execution(job_id)
+        input = json.loads(query["input"][0])
+        execution_id = database.create_job_execution(job_id, input)
         get_shared_memory().job_queue.put(JobQueueItem(job_id, execution_id))
         reply_json(ctx, 200, {"status": "success"})
 

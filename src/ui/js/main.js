@@ -140,7 +140,7 @@ const useCallback = Hooks.useCallback;
 // #region Rendering
 
 const Rendering = (() => {
-    const EVENT_LISTENER_ATTRIBUTES = ["onclick"]
+    const EVENT_LISTENER_ATTRIBUTES = ["onclick", "onchange", "oninput"];
 
     function h(tag, _props, _children) {
         const props = _props || {};
@@ -512,6 +512,10 @@ const Data = (() => {
         return useFetch('/api/jobs/get_list', []);
     }
 
+    function useJob(jobId) {
+        return useFetch('/api/jobs/get?job_id=' + jobId, null);
+    }
+
     function useJobExecutions(jobId) {
         const [jobExecutions, refreshJobExecutions] = useFetch('/api/jobs/executions/get_list?job_id=' + jobId, []);
         const eventCallback = useCallback((e) => {
@@ -565,9 +569,10 @@ const Data = (() => {
         return log;
     }
 
-    return { useJobs, useJobExecutions, useJobExecution, useJobExecutionLog }
+    return { useJobs, useJob, useJobExecutions, useJobExecution, useJobExecutionLog }
 })();
 const useJobs = Data.useJobs;
+const useJob = Data.useJob;
 const useJobExecutions = Data.useJobExecutions;
 const useJobExecution = Data.useJobExecution;
 const useJobExecutionLog = Data.useJobExecutionLog;
@@ -623,16 +628,38 @@ component('x-job-list', () => {
 component('x-job', () => {
     const internalUrl = useInternalUrl()
     const jobId = internalUrl.searchParams.get('job_id');
+    const [job] = useJob(jobId);
     const [jobExecutions] = useJobExecutions(jobId);
 
+    const [inputValues, setInputValues] = useState({});
+    const inputCount = Object.keys(job?.input || {}).length;
+
     const onClickRun = async () => {
-        await fetch('/api/jobs/run?job_id=' + jobId, { method: 'POST' });
+        const inputQueryParam = encodeURIComponent(JSON.stringify(inputValues));
+        await fetch(`/api/jobs/run?job_id=${jobId}&input=${inputQueryParam}`, { method: 'POST' });
     }
 
     return h('div', {}, [
+        job != null && inputCount > 0 && h('div', { class: 'x-section' }, [
+            h('p', {}, [
+                ...Object.keys(job.input).map((key) => {
+                    return [
+                        h('label', {}, `${key}: `),
+                        h('input', {
+                            type: "text",
+                            oninput: (e) => setInputValues((v) => ({ ...v, [key]: e.target.value }))
+                        }),
+                        h('br')
+                    ]
+                }).flat(),
+            ]),
+            h('p', {}, [
+                h('button', { type: 'button', onclick: onClickRun }, 'run'),
+            ])
+        ]),
         h('div', { class: 'x-section' }, [
             h('b', {}, 'executions'),
-            h('button', { type: 'button', style: "margin-left: 1em;", onclick: onClickRun }, 'run'),
+            job != null && inputCount === 0 && h('button', { type: 'button', style: "margin-left: 1em;", onclick: onClickRun }, 'run'),
         ]),
         table([
             h('b', {}, '#'),
