@@ -182,4 +182,6 @@ x-job-execution .follow-logs-box.is-sticky {
 
 x-job-execution-logs pre {
     margin: 1em;
+    overflow-x: hidden;
+    white-space: pre-wrap;
 }
