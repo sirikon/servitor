@@ -35,7 +35,8 @@ def get_job(job_id: str):
 def run_job(job_id: str, execution_id: str):
     job_paths = JobPathsBuilder(getcwd(), job_id)
     job_execution_paths = JobExecutionPathsBuilder(job_paths, execution_id)
-    input_values = get_job_execution_input_values(job_id, execution_id)
+    with open(job_execution_paths.input_values_file, "r") as f:
+        input_values = json.load(f)
     event_bus_client = get_event_bus_client()
 
     process: Popen = None
@@ -88,13 +89,3 @@ def run_job(job_id: str, execution_id: str):
         database.set_job_execution_result(
             job_id, execution_id, result_exit_code, result_message
         )
-
-
-def get_job_execution_input_values(job_id: str, execution_id: str):
-    job_paths = JobPathsBuilder(getcwd(), job_id)
-    job_execution_paths = JobExecutionPathsBuilder(job_paths, execution_id)
-    with open(job_paths.input_spec_file, "r") as f:
-        input_spec = json.load(f)
-    with open(job_execution_paths.input_values_file, "r") as f:
-        input_values = json.load(f)
-    return {key: input_values[key] for key in input_values if key in input_spec}

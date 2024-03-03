@@ -56,10 +56,17 @@ def configure_routes():
     def _(ctx: http.server.BaseHTTPRequestHandler):
         query = parse_qs(urlparse(ctx.path).query)
         job_id = query["job_id"][0]
+        job_paths = JobPathsBuilder(getcwd(), job_id)
+
+        with open(job_paths.input_spec_file, "r") as f:
+            input_spec = json.load(f)
         input_values = {}
         for key in query:
             if key.startswith("input_value_"):
-                input_values[key.removeprefix("input_value_")] = query[key][0]
+                input_key = key.removeprefix("input_value_")
+                if input_key in input_spec:
+                    input_values[input_key] = query[key][0]
+
         execution_id = database.create_job_execution(job_id, input_values)
         get_shared_memory().job_queue.put(JobQueueItem(job_id, execution_id))
         reply_json(ctx, 200, {"status": "success"})
