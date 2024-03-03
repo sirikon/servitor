@@ -2,7 +2,7 @@ import json
 from signal import SIGINT
 from subprocess import Popen, DEVNULL
 from os import getcwd, makedirs, killpg, environ
-from os.path import join, dirname, relpath, isfile
+from os.path import join, relpath, isfile
 from glob import glob
 from stat import S_IXUSR
 from pathlib import Path
@@ -19,7 +19,7 @@ def get_jobs():
                 job_id = relpath(filename, join(getcwd(), "config", "jobs"))
                 yield get_job(job_id)
 
-    return list(gen())
+    return sorted(list(gen()), key=lambda job: job["job_id"])
 
 
 def get_job(job_id: str):
