@@ -4,7 +4,7 @@ Simplest possible job manager.
 
 ## How it works
 
-Any subdirectory under `<working_directory>/config/jobs` with an executable file called `run` inside will be considered a **job**. Jobs are **executed** by executing the `run` file in its own directory. The logs of the execution are captured and stored.
+Any executable file in any subdirectory under `<working_directory>/config/jobs` will be considered a **job**. The path to the executable will be the name of the job. Jobs are **executed** by executing the file in its own directory. The logs of the execution are captured and stored.
 
 The default UI and the HTTP API allow exploring jobs, executions, logs, and triggering new executions.
 
@@ -26,7 +26,7 @@ PYTHONPATH=src/python SERVITOR_UI_ROOT=src/ui python3 -m servitor
 
 ### Installer
 
-There is an [installer](./scripts/servitor-installer.sh) available that will install servitor as a service, create a user if needed, and leave it running.
+There is an [installer](./scripts/servitor-installer.sh) available that will install Servitor as a service, create a user if needed, and leave it running.
 
 ```bash
 curl -L https://raw.githubusercontent.com/sirikon/servitor/master/scripts/servitor-installer.sh | bash
