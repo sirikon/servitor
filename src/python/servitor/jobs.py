@@ -35,7 +35,7 @@ def get_job(job_id: str):
 def run_job(job_id: str, execution_id: str):
     job_paths = JobPathsBuilder(getcwd(), job_id)
     job_execution_paths = JobExecutionPathsBuilder(job_paths, execution_id)
-    input = get_job_execution_input(job_id, execution_id)
+    input_values = get_job_execution_input_values(job_id, execution_id)
     event_bus_client = get_event_bus_client()
 
     process: Popen = None
@@ -65,7 +65,7 @@ def run_job(job_id: str, execution_id: str):
                 stderr=job_log,
                 stdin=DEVNULL,
                 start_new_session=True,
-                env=dict(environ, **input),
+                env=dict(environ, **input_values),
             )
             database.set_job_execution_status(job_id, execution_id, "running")
             exit_code = process.wait()
@@ -90,9 +90,11 @@ def run_job(job_id: str, execution_id: str):
         )
 
 
-def get_job_execution_input(job_id: str, execution_id: str):
+def get_job_execution_input_values(job_id: str, execution_id: str):
     job_paths = JobPathsBuilder(getcwd(), job_id)
     job_execution_paths = JobExecutionPathsBuilder(job_paths, execution_id)
+    with open(job_paths.input_spec_file, "r") as f:
+        input_spec = json.load(f)
     with open(job_execution_paths.input_values_file, "r") as f:
-        input = json.load(f)
-    return input
+        input_values = json.load(f)
+    return {key: input_values[key] for key in input_values if key in input_spec}
