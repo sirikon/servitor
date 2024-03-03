@@ -24,6 +24,13 @@ class FileDatabase:
         return result
 
     def get_job_execution(self, job_id: str, execution_id: str):
+        job_paths = JobPathsBuilder(getcwd(), job_id)
+        job_execution_paths = JobExecutionPathsBuilder(job_paths, execution_id)
+        try:
+            with open(job_execution_paths.input_values_file, "r") as f:
+                input_values = json.load(f)
+        except FileNotFoundError:
+            input_values = {}
         return {
             "execution_id": execution_id,
             "status": self.get_job_execution_status(job_id, execution_id),
@@ -31,6 +38,7 @@ class FileDatabase:
                 job_id, execution_id
             ),
             "result": self.get_job_execution_result(job_id, execution_id),
+            "input_values": input_values,
         }
 
     def create_job_execution(self, job_id: str, input_values: Any):

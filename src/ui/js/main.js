@@ -728,6 +728,9 @@ component('x-job-execution', () => {
                 jobExecution?.status === "running" && h('button', { type: 'button', onclick: cancelJobExecution }, 'cancel')
             ])
         ]),
+        Object.keys(jobExecution?.input_values || {}).length > 0 && table(null, Object.keys(jobExecution.input_values).map(key => {
+            return [key, jobExecution.input_values[key]]
+        })),
         h('x-job-execution-logs', { 'job-id': jobId, 'execution-id': executionId, 'follow-logs': follow.toString() }),
         h('div', { class: `x-box follow-logs-box ${jobExecution?.status === "running" ? 'is-sticky' : ''}` }, [
             h('p', {}, [
