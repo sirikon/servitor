@@ -1,36 +1,34 @@
 import threading
 import multiprocessing
 import multiprocessing.connection
+from typing import Callable
 
 from servitor.framework.logging import log
 
 
 class EventBusClient:
-    _handlers = []
-    _handlers_lock = threading.Lock()
-    _connection: multiprocessing.connection.Connection = None
+    _handlers: list[Callable]
+    _handlers_lock: threading.Lock
+    _connection: multiprocessing.connection.Connection
 
     def __init__(self, connection: multiprocessing.connection.Connection) -> None:
+        self._handlers = []
+        self._handlers_lock = None
         self._connection = connection
 
     def start(self):
+        self._handlers_lock = threading.Lock()
         threading.Thread(target=self._repeater, daemon=True).start()
 
     def listen(self, handler):
-        self._handlers_lock.acquire()
-        try:
+        with self._handlers_lock:
             if handler not in self._handlers:
                 self._handlers.append(handler)
-        finally:
-            self._handlers_lock.release()
 
     def unlisten(self, handler):
-        self._handlers_lock.acquire()
-        try:
+        with self._handlers_lock:
             if handler in self._handlers:
                 self._handlers.remove(handler)
-        finally:
-            self._handlers_lock.release()
 
     def _repeater(self):
         try:
@@ -41,12 +39,9 @@ class EventBusClient:
             log.info("event bus client repeater closed")
 
     def _handle(self, msg):
-        self._handlers_lock.acquire()
-        try:
+        with self._handlers_lock:
             for handler in self._handlers:
                 handler(msg)
-        finally:
-            self._handlers_lock.release()
 
     def send(self, id, payload=None):
         msg = {"id": id, "payload": payload}
@@ -55,7 +50,10 @@ class EventBusClient:
 
 
 class EventBus:
-    _connections: list[multiprocessing.connection.Connection] = []
+    _connections: list[multiprocessing.connection.Connection]
+
+    def __init__(self) -> None:
+        self._connections = []
 
     def spawn_client(self):
         client_conn, root_conn = multiprocessing.Pipe()
@@ -74,7 +72,10 @@ class EventBus:
                 msg = connection.recv()
                 for c in self._connections:
                     if c is not connection:
-                        c.send(msg)
+                        try:
+                            c.send(msg)
+                        except BrokenPipeError:
+                            log.error("broken pipe error")
         except EOFError:
             log.info("event bus broadcaster closed")
 
