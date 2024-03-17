@@ -2,9 +2,9 @@ import multiprocessing
 import multiprocessing.connection
 
 from servitor.framework.logging import log
+from servitor.framework.event_bus import EventBus
 from servitor.processes import handle_shutdown, start_job_worker, start_web_server
 from servitor.shared_memory import SharedMemory, set_shared_memory
-from servitor.event_bus import EventBus
 
 
 def start():

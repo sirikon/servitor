@@ -6,12 +6,13 @@ from os import getcwd, makedirs, remove, chmod
 from os.path import join, exists
 from servitor.framework.http import UnixHTTPServer
 
-from servitor.jobs import run_job
+
 from servitor.framework.logging import log
 from servitor.framework.http import HTTPRequestHandler
+from servitor.framework.event_bus import EventBusClient, set_event_bus_client
+from servitor.jobs import run_job
 from servitor.http import configure_routes
 from servitor.shared_memory import JobQueueItem, SharedMemory, set_shared_memory
-from servitor.event_bus import EventBusClient, set_event_bus_client
 
 
 def handle_shutdown(handler):

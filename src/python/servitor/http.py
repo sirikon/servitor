@@ -7,6 +7,7 @@ from mimetypes import guess_type
 from os.path import join, normpath
 from urllib.parse import urlparse, parse_qs
 
+from servitor.framework.event_bus import get_event_bus_client
 from servitor.framework.http import reply, reply_json, reply_not_found, route
 from servitor.jobs import (
     get_job,
@@ -14,7 +15,6 @@ from servitor.jobs import (
 )
 from servitor.paths import JobExecutionPathsBuilder, JobPathsBuilder
 from servitor.shared_memory import JobQueueItem, get_shared_memory
-from servitor.event_bus import get_event_bus_client
 from servitor.database import database
 
 
