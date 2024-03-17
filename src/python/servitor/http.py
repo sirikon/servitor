@@ -3,12 +3,16 @@ import threading
 import json
 import time
 from os import getcwd, sep, getenv
-from mimetypes import guess_type
 from os.path import join, normpath
 from urllib.parse import urlparse, parse_qs
 
 from servitor.framework.event_bus import get_event_bus_client
-from servitor.framework.http import reply, reply_json, reply_not_found, route
+from servitor.framework.http import (
+    reply_file,
+    reply_json,
+    reply_not_found,
+    route,
+)
 from servitor.jobs import (
     get_job,
     get_jobs,
@@ -165,7 +169,6 @@ def configure_routes():
                 return
 
             try:
-                with open(ui_file_path, "br") as f:
-                    reply(ctx, 200, guess_type(ui_file_path)[0], f.read())
+                reply_file(ctx, 200, ui_file_path)
             except FileNotFoundError:
                 reply_not_found(ctx)

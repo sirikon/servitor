@@ -3,8 +3,11 @@ import json
 import re
 import socket
 import socketserver
-from typing import Callable
+import shutil
+from os.path import getsize
+from mimetypes import guess_type
 from urllib.parse import urlparse
+from typing import Callable
 
 from servitor.framework.logging import log
 
@@ -43,6 +46,15 @@ def reply(ctx: http.server.BaseHTTPRequestHandler, code: int, type: str, body: b
     ctx.wfile.write(body)
 
 
+def reply_file(ctx: http.server.BaseHTTPRequestHandler, code: int, path: str):
+    with open(path, "br") as f:
+        ctx.send_response(code)
+        ctx.send_header("Content-Type", f"{guess_type(path)[0]}; charset=utf-8")
+        ctx.send_header("Content-Length", str(getsize(path)))
+        ctx.end_headers()
+        shutil.copyfileobj(f, ctx.wfile)
+
+
 def reply_json(ctx: http.server.BaseHTTPRequestHandler, code: int, body: object):
     reply(ctx, code, "application/json", json.dumps(body).encode())
 
@@ -56,6 +68,7 @@ def reply_error(ctx: http.server.BaseHTTPRequestHandler):
 
 
 class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
+    server_version = "Servitor"
     protocol_version = "HTTP/1.1"
 
     def do_GET(self):
@@ -66,6 +79,9 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
 
     def log_message(self, format, *args):
         log.debug(f"request {format % args}")
+
+    def version_string(self):
+        return self.server_version
 
 
 # Ugly? yes
