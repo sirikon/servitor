@@ -10,24 +10,18 @@ class EventBusClient:
     _handlers: list[Callable]
     _handlers_lock: threading.Lock
     _connection: multiprocessing.connection.Connection
-    _connection_termination_queue: multiprocessing.Queue
 
     def __init__(
         self,
         connection: multiprocessing.connection.Connection,
-        connection_termination_queue: multiprocessing.Queue,
     ) -> None:
         self._handlers = []
         self._handlers_lock = None
         self._connection = connection
-        self._connection_termination_queue = connection_termination_queue
 
     def start(self):
         self._handlers_lock = threading.Lock()
         threading.Thread(target=self._repeater, daemon=True).start()
-
-    def stop(self):
-        self._connection_termination_queue.put(self._connection)
 
     def listen(self, handler):
         with self._handlers_lock:
@@ -65,47 +59,33 @@ class EventBus:
             multiprocessing.connection.Connection,
         ]
     ]
-    _connections_lock: threading.Lock
-    _connection_termination_queue: multiprocessing.Queue
 
     def __init__(self) -> None:
         self._connections = []
-        self._connections_lock = threading.Lock()
-        self._connection_termination_queue = multiprocessing.Queue()
-        threading.Thread(
-            target=self._connection_termination_listener, daemon=True
-        ).start()
 
     def spawn_client(self):
         client_conn, root_conn = multiprocessing.Pipe()
 
-        with self._connections_lock:
-            self._connections.append((client_conn, root_conn))
+        # Storing the client connection, even though we're not going to use
+        # it, prevents the connection from being closed when the associated
+        # the process that receives it shuts down.
+        #
+        # This is the alternative to a way more complicated de-registration
+        # mechanism.
+        self._connections.append((client_conn, root_conn))
 
         threading.Thread(target=self._broadcast, args=(root_conn,), daemon=True).start()
-        return EventBusClient(client_conn, self._connection_termination_queue)
+        return EventBusClient(client_conn)
 
     def _broadcast(self, connection):
         try:
             while True:
                 msg = connection.recv()
-                with self._connections_lock:
-                    for _, c in self._connections:
-                        if c is not connection:
-                            c.send(msg)
+                for _, c in self._connections:
+                    if c is not connection:
+                        c.send(msg)
         except EOFError:
             log.info("event bus broadcaster closed")
-
-    def _connection_termination_listener(self):
-        while True:
-            conn = self._connection_termination_queue.get()
-            with self._connections_lock:
-                for i, (client_conn, root_conn) in enumerate(self._connections):
-                    if client_conn == conn:
-                        self._connections.pop(i)
-                        client_conn.close()
-                        root_conn.close()
-                        return
 
 
 _event_bus_client: EventBusClient | None = None
