@@ -34,9 +34,10 @@ def configure_routes():
 
         def on_message(msg):
             try:
-                chunk = f"{json.dumps(msg, separators=(',', ':'))}\n"
-                chunk_size = len(chunk.encode())
-                ctx.wfile.write(f"{chunk_size:x}\r\n{chunk}\r\n".encode())
+                chunk = f"{json.dumps(msg, separators=(',', ':'))}\n".encode()
+                ctx.wfile.write(f"{len(chunk):x}\r\n".encode())
+                ctx.wfile.write(chunk)
+                ctx.wfile.write("\r\n".encode())
             except Exception:
                 done.set()
 
@@ -140,8 +141,7 @@ def configure_routes():
 
                     try:
                         while chunk := f.read(COPY_BUFSIZE):
-                            chunk_size = len(chunk)
-                            ctx.wfile.write(f"{chunk_size:x}\r\n".encode())
+                            ctx.wfile.write(f"{len(chunk):x}\r\n".encode())
                             ctx.wfile.write(chunk)
                             ctx.wfile.write(f"\r\n".encode())
                     except Exception:
