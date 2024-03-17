@@ -10,15 +10,24 @@ class EventBusClient:
     _handlers: list[Callable]
     _handlers_lock: threading.Lock
     _connection: multiprocessing.connection.Connection
+    _connection_termination_queue: multiprocessing.Queue
 
-    def __init__(self, connection: multiprocessing.connection.Connection) -> None:
+    def __init__(
+        self,
+        connection: multiprocessing.connection.Connection,
+        connection_termination_queue: multiprocessing.Queue,
+    ) -> None:
         self._handlers = []
         self._handlers_lock = None
         self._connection = connection
+        self._connection_termination_queue = connection_termination_queue
 
     def start(self):
         self._handlers_lock = threading.Lock()
         threading.Thread(target=self._repeater, daemon=True).start()
+
+    def stop(self):
+        self._connection_termination_queue.put(self._connection)
 
     def listen(self, handler):
         with self._handlers_lock:
@@ -50,34 +59,53 @@ class EventBusClient:
 
 
 class EventBus:
-    _connections: list[multiprocessing.connection.Connection]
+    _connections: list[
+        tuple[
+            multiprocessing.connection.Connection,
+            multiprocessing.connection.Connection,
+        ]
+    ]
+    _connections_lock: threading.Lock
+    _connection_termination_queue: multiprocessing.Queue
 
     def __init__(self) -> None:
         self._connections = []
+        self._connections_lock = threading.Lock()
+        self._connection_termination_queue = multiprocessing.Queue()
+        threading.Thread(
+            target=self._connection_termination_listener, daemon=True
+        ).start()
 
     def spawn_client(self):
         client_conn, root_conn = multiprocessing.Pipe()
-        self._connections.append(root_conn)
-        return EventBusClient(client_conn)
 
-    def start(self):
-        for connection in self._connections:
-            threading.Thread(
-                target=self._broadcast, args=(connection,), daemon=True
-            ).start()
+        with self._connections_lock:
+            self._connections.append((client_conn, root_conn))
+
+        threading.Thread(target=self._broadcast, args=(root_conn,), daemon=True).start()
+        return EventBusClient(client_conn, self._connection_termination_queue)
 
     def _broadcast(self, connection):
         try:
             while True:
                 msg = connection.recv()
-                for c in self._connections:
-                    if c is not connection:
-                        try:
+                with self._connections_lock:
+                    for _, c in self._connections:
+                        if c is not connection:
                             c.send(msg)
-                        except BrokenPipeError:
-                            log.error("broken pipe error")
         except EOFError:
             log.info("event bus broadcaster closed")
+
+    def _connection_termination_listener(self):
+        while True:
+            conn = self._connection_termination_queue.get()
+            with self._connections_lock:
+                for i, (client_conn, root_conn) in enumerate(self._connections):
+                    if client_conn == conn:
+                        self._connections.pop(i)
+                        client_conn.close()
+                        root_conn.close()
+                        return
 
 
 _event_bus_client: EventBusClient | None = None

@@ -33,8 +33,6 @@ def start():
             )
         )
 
-    event_bus.start()
-
     for process in processes:
         process.start()
 
