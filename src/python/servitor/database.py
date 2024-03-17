@@ -117,11 +117,5 @@ class FileDatabase:
         except FileNotFoundError:
             return None
 
-    def get_job_execution_log(self, job_id: str, execution_id: str):
-        job_paths = JobPathsBuilder(getcwd(), job_id)
-        job_execution_paths = JobExecutionPathsBuilder(job_paths, execution_id)
-        with open(job_execution_paths.main_log_file, "br") as f:
-            return f.read()
-
 
 database = FileDatabase()

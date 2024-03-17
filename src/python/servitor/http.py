@@ -2,9 +2,13 @@ import http.server
 import threading
 import json
 import time
-from os import getcwd, sep, getenv
+from os import getcwd, sep, getenv, name as os_name
 from os.path import join, normpath
 from urllib.parse import urlparse, parse_qs
+
+# Copied from shutil.
+# https://github.com/python/cpython/blob/v3.12.2/Lib/shutil.py#L48
+COPY_BUFSIZE = 1024 * 1024 if (os_name == "nt") else 64 * 1024
 
 from servitor.framework.event_bus import get_event_bus_client
 from servitor.framework.http import (
@@ -131,24 +135,27 @@ def configure_routes():
                 ctx.send_header("Content-Type", f"text/plain; charset=utf-8")
                 ctx.send_header("Transfer-Encoding", "chunked")
                 ctx.end_headers()
-                while True:
-                    chunk = f.read()
-                    chunk_size = len(chunk)
 
-                    if chunk_size > 0:
-                        try:
+                while True:
+
+                    try:
+                        while chunk := f.read(COPY_BUFSIZE):
+                            chunk_size = len(chunk)
                             ctx.wfile.write(f"{chunk_size:x}\r\n".encode())
                             ctx.wfile.write(chunk)
                             ctx.wfile.write(f"\r\n".encode())
-                        except Exception:
-                            break
+                    except Exception:
+                        break
+
                     if done.is_set():
                         try:
                             ctx.wfile.write(f"{0:x}\r\n\r\n".encode())
                         except Exception:
                             pass
                         break
+
                     time.sleep(0.1)
+
         except FileNotFoundError:
             reply_not_found(ctx)
         finally:
