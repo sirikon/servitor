@@ -28,7 +28,7 @@ def start():
     for i in range(max(multiprocessing.cpu_count(), 2)):
         processes.append(
             multiprocessing.Process(
-                name=f"Job_Worker-{i}",
+                name=f"Job_Worker-{i+1}",
                 target=start_job_worker,
                 args=(shared_memory, event_bus.spawn_client()),
                 daemon=True,
