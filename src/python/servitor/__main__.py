@@ -18,15 +18,17 @@ def start():
 
     processes = [
         multiprocessing.Process(
+            name="HTTP_Server",
             target=start_http_server,
             args=(shared_memory, event_bus.spawn_client()),
             daemon=True,
         )
     ]
 
-    for _ in range(max(multiprocessing.cpu_count(), 2)):
+    for i in range(max(multiprocessing.cpu_count(), 2)):
         processes.append(
             multiprocessing.Process(
+                name=f"Job_Worker-{i}",
                 target=start_job_worker,
                 args=(shared_memory, event_bus.spawn_client()),
                 daemon=True,
