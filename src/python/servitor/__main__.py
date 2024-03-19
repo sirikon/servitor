@@ -3,7 +3,7 @@ import multiprocessing.connection
 
 from servitor.framework.logging import log
 from servitor.framework.event_bus import EventBus
-from servitor.processes import handle_shutdown, start_job_worker, start_web_server
+from servitor.processes import handle_shutdown, start_job_worker, start_http_server
 from servitor.shared_memory import SharedMemory, set_shared_memory
 
 
@@ -18,7 +18,7 @@ def start():
 
     processes = [
         multiprocessing.Process(
-            target=start_web_server,
+            target=start_http_server,
             args=(shared_memory, event_bus.spawn_client()),
             daemon=True,
         )

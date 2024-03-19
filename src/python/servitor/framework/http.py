@@ -11,31 +11,65 @@ from typing import Callable
 
 from servitor.framework.logging import log
 
-_routes: dict[str, list[tuple[re.Pattern, Callable]]] = {}
+
+# Ugly? yes
+# Works? yes
+# https://stackoverflow.com/a/21650502
+class UnixHTTPServer(http.server.ThreadingHTTPServer):
+    address_family = socket.AF_UNIX
+
+    def server_bind(self):
+        socketserver.TCPServer.server_bind(self)
+        self.server_name = "foo"
+        self.server_port = 0
 
 
-def route(method: str, pattern: re.Pattern):
-    def decorator(func):
-        if method not in _routes:
-            _routes[method] = []
-        _routes[method].append((re.compile(pattern), func))
-        return func
+class HTTPApp:
+    _routes: dict[str, list[tuple[re.Pattern, Callable]]]
 
-    return decorator
+    def __init__(self) -> None:
+        self._routes = {}
 
+    def route(self, method: str, pattern: re.Pattern):
+        def decorator(func):
+            if method not in self._routes:
+                self._routes[method] = []
+            self._routes[method].append((re.compile(pattern), func))
+            return func
 
-def handle_request(ctx: http.server.BaseHTTPRequestHandler, method: str):
-    routing_path = urlparse(ctx.path).path
-    try:
-        for pattern, func in _routes[method]:
-            match = pattern.match(routing_path)
-            if match:
-                func(ctx, **match.groupdict())
-                return
-        reply_not_found(ctx)
-    except Exception:
-        log.exception("error during request processing")
-        reply_error(ctx)
+        return decorator
+
+    def build_server(self, sock_path: str):
+        class HTTPAppRequestHandler(http.server.BaseHTTPRequestHandler):
+            server_version = "Servitor"
+            protocol_version = "HTTP/1.1"
+
+            def do_GET(handler):
+                self._handle_request(handler, "GET")
+
+            def do_POST(handler):
+                self._handle_request(handler, "POST")
+
+            def log_message(handler, format, *args):
+                log.debug(f"request {format % args}")
+
+            def version_string(handler):
+                return handler.server_version
+
+        return UnixHTTPServer(sock_path, HTTPAppRequestHandler)
+
+    def _handle_request(self, ctx: http.server.BaseHTTPRequestHandler, method: str):
+        routing_path = urlparse(ctx.path).path
+        try:
+            for pattern, func in self._routes[method]:
+                match = pattern.match(routing_path)
+                if match:
+                    func(ctx, **match.groupdict())
+                    return
+            reply_not_found(ctx)
+        except Exception:
+            log.exception("error during request processing")
+            reply_error(ctx)
 
 
 def reply(ctx: http.server.BaseHTTPRequestHandler, code: int, type: str, body: bytes):
@@ -65,32 +99,3 @@ def reply_not_found(ctx: http.server.BaseHTTPRequestHandler):
 
 def reply_error(ctx: http.server.BaseHTTPRequestHandler):
     reply_json(ctx, 500, {"message": "Something went wrong"})
-
-
-class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
-    server_version = "Servitor"
-    protocol_version = "HTTP/1.1"
-
-    def do_GET(self):
-        handle_request(self, "GET")
-
-    def do_POST(self):
-        handle_request(self, "POST")
-
-    def log_message(self, format, *args):
-        log.debug(f"request {format % args}")
-
-    def version_string(self):
-        return self.server_version
-
-
-# Ugly? yes
-# Works? yes
-# https://stackoverflow.com/a/21650502
-class UnixHTTPServer(http.server.ThreadingHTTPServer):
-    address_family = socket.AF_UNIX
-
-    def server_bind(self):
-        socketserver.TCPServer.server_bind(self)
-        self.server_name = "foo"
-        self.server_port = 0
