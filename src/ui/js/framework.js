@@ -1,6 +1,6 @@
 'use strict';
 
-const Framework = (() => {
+(() => {
 
     const Hooks = (() => {
 
