@@ -9,7 +9,7 @@ from servitor.paths import JobExecutionPathsBuilder, JobPathsBuilder
 from servitor.shared_memory import get_shared_memory
 
 
-class FileDatabase:
+class State:
     def get_job_executions(self, job_id: str):
         def gen():
             job_paths = JobPathsBuilder(getcwd(), job_id)
@@ -118,4 +118,4 @@ class FileDatabase:
             return None
 
 
-database = FileDatabase()
+state = State()

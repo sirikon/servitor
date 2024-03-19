@@ -17,13 +17,10 @@ from servitor.framework.http import (
     reply_not_found,
     route,
 )
-from servitor.jobs import (
-    get_job,
-    get_jobs,
-)
+from servitor.config import config
 from servitor.paths import JobExecutionPathsBuilder, JobPathsBuilder
 from servitor.shared_memory import JobQueueItem, get_shared_memory
-from servitor.database import database
+from servitor.state import state
 
 
 def configure_routes():
@@ -53,13 +50,13 @@ def configure_routes():
 
     @route("GET", r"^/api/jobs/get_list$")
     def _(ctx: http.server.BaseHTTPRequestHandler):
-        reply_json(ctx, 200, get_jobs())
+        reply_json(ctx, 200, config.get_jobs())
 
     @route("GET", r"^/api/jobs/get$")
     def _(ctx: http.server.BaseHTTPRequestHandler):
         query = parse_qs(urlparse(ctx.path).query)
         job_id = query["job_id"][0]
-        reply_json(ctx, 200, get_job(job_id))
+        reply_json(ctx, 200, config.get_job(job_id))
 
     @route("POST", r"^/api/jobs/run$")
     def _(ctx: http.server.BaseHTTPRequestHandler):
@@ -79,7 +76,7 @@ def configure_routes():
                 if input_key in input_spec:
                     input_values[input_key] = query[key][0]
 
-        execution_id = database.create_job_execution(job_id, input_values)
+        execution_id = state.create_job_execution(job_id, input_values)
         get_shared_memory().job_queue.put(JobQueueItem(job_id, execution_id))
         reply_json(ctx, 200, {"status": "success"})
 
@@ -97,7 +94,7 @@ def configure_routes():
     @route("GET", r"^/api/jobs/executions/get_list$")
     def _(ctx: http.server.BaseHTTPRequestHandler):
         query = parse_qs(urlparse(ctx.path).query)
-        reply_json(ctx, 200, database.get_job_executions(query["job_id"][0]))
+        reply_json(ctx, 200, state.get_job_executions(query["job_id"][0]))
 
     @route("GET", r"^/api/jobs/executions/get$")
     def _(ctx: http.server.BaseHTTPRequestHandler):
@@ -105,7 +102,7 @@ def configure_routes():
         reply_json(
             ctx,
             200,
-            database.get_job_execution(query["job_id"][0], query["execution_id"][0]),
+            state.get_job_execution(query["job_id"][0], query["execution_id"][0]),
         )
 
     @route("GET", r"^/api/jobs/executions/logs/get$")
@@ -129,7 +126,7 @@ def configure_routes():
 
         try:
             event_bus_client.listen(on_message)
-            if database.get_job_execution_status(job_id, execution_id) != "running":
+            if state.get_job_execution_status(job_id, execution_id) != "running":
                 done.set()
             with open(job_execution_paths.main_log_file, "br") as f:
                 ctx.send_response(200)

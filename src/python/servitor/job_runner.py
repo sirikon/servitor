@@ -2,34 +2,10 @@ import json
 from signal import SIGINT
 from subprocess import Popen, DEVNULL
 from os import getcwd, makedirs, killpg, environ
-from os.path import join, relpath, isfile
-from glob import glob
-from stat import S_IXUSR
-from pathlib import Path
 
 from servitor.framework.event_bus import get_event_bus_client
 from servitor.paths import JobExecutionPathsBuilder, JobPathsBuilder
-from servitor.database import database
-
-
-def get_jobs():
-    def gen():
-        for filename in glob(join(getcwd(), "config", "jobs", "**/*"), recursive=True):
-            if isfile(filename) and Path(filename).stat().st_mode & S_IXUSR:
-                job_id = relpath(filename, join(getcwd(), "config", "jobs"))
-                yield get_job(job_id)
-
-    return sorted(list(gen()), key=lambda job: job["job_id"])
-
-
-def get_job(job_id: str):
-    job_paths = JobPathsBuilder(getcwd(), job_id)
-    try:
-        with open(job_paths.input_spec_file, "r") as f:
-            input_spec = json.load(f)
-    except FileNotFoundError:
-        input_spec = {}
-    return {"job_id": job_id, "input_spec": input_spec}
+from servitor.state import state
 
 
 def run_job(job_id: str, execution_id: str):
@@ -68,7 +44,7 @@ def run_job(job_id: str, execution_id: str):
                 start_new_session=True,
                 env=dict(environ, **input_values),
             )
-            database.set_job_execution_status(job_id, execution_id, "running")
+            state.set_job_execution_status(job_id, execution_id, "running")
             exit_code = process.wait()
     except Exception as ex:
         status = "failure"
@@ -85,7 +61,7 @@ def run_job(job_id: str, execution_id: str):
         result_message = ""
     finally:
         event_bus_client.unlisten(listen_for_cancellation)
-        database.set_job_execution_status(job_id, execution_id, status)
-        database.set_job_execution_result(
+        state.set_job_execution_status(job_id, execution_id, status)
+        state.set_job_execution_result(
             job_id, execution_id, result_exit_code, result_message
         )
