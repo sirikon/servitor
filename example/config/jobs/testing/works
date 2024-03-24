@@ -3,3 +3,4 @@ set -euo pipefail
 
 cat works.txt
 echo >&2 "And have stuff on stderr"
+env

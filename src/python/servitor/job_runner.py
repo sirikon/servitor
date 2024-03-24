@@ -15,6 +15,14 @@ def run_job(job_id: str, execution_id: str):
         input_values = json.load(f)
     event_bus_client = get_event_bus_client()
 
+    job_env = dict(
+        environ,
+        SERVITOR_ROOT=getcwd(),
+        SERVITOR_JOB=job_id,
+        SERVITOR_JOB_EXECUTION=execution_id,
+        **input_values
+    )
+
     process: Popen = None
     cancelled: bool = False
     status: str = None
@@ -42,7 +50,7 @@ def run_job(job_id: str, execution_id: str):
                 stderr=job_log,
                 stdin=DEVNULL,
                 start_new_session=True,
-                env=dict(environ, **input_values),
+                env=job_env,
             )
             state.set_job_execution_status(job_id, execution_id, "running")
             exit_code = process.wait()
