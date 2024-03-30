@@ -14,7 +14,9 @@ Jobs are executed with the same environment and user used to start Servitor. For
 
 Servitor exposes an HTTP API through a UNIX socket on `<working_directory>/sockets/servitor.sock`. Servitor implements no authentication nor authorization of any kind, which means that a process that can communicate with `servitor.sock` can do anything that the API allows, unrestricted. This socket is created with the permissions `770` to limit the access to the same user and group executing Servitor.
 
-When Servitor receives a SIGINT or a SIGTERM, it will shut down the HTTP server immediately, and will wait for for any running jobs to finish before shutting down completely.
+When Servitor receives a SIGINT or a SIGTERM, it will shut down the HTTP server immediately, and will wait for any running jobs to finish before shutting down completely.
+
+While discovering and executing jobs, symlinks will be followed.
 
 ## Install
 
