@@ -1,28 +1,30 @@
 'use strict';
 
+const signal = poring.signal;
+const effect = poring.effect;
+const compute = poring.compute;
+const component = poring.component;
+const baseRenderer = poring.baseRenderer;
+const renderer = poring.renderer;
+const h = poring.h;
+
 // #region Routing
 
-const Routing = (() => {
-    function getInternalUrl() {
-        const hash = document.location.hash.replace(/^#/, '');
-        return new URL('internal:' + hash);
-    }
-
-    function useInternalUrl() {
-        const [internalUrl, setInternalUrl] = useState(getInternalUrl());
-        useEffect(() => {
-            const onHashChange = () => { setInternalUrl(getInternalUrl()) }
-            window.addEventListener('hashchange', onHashChange);
-            return () => window.removeEventListener('hashchange', onHashChange);
-        }, [])
-        return internalUrl;
-    }
-
+function useInternalUrl() {
+    const value = signal();
+    effect(() => {
+        function handler() {
+            const hash = document.location.hash.replace(/^#/, '');
+            value.set(new URL('internal:' + hash));
+        }
+        handler();
+        window.addEventListener('hashchange', handler);
+        return () => window.removeEventListener('hashchange', handler);
+    })
     return {
-        useInternalUrl
+        get: () => value.get()
     }
-})();
-const useInternalUrl = Routing.useInternalUrl;
+}
 
 // #endregion
 
@@ -121,76 +123,79 @@ const Data = (() => {
         connectForever();
 
         function useEvents(cb) {
-            useEffect(() => {
+            effect(() => {
                 const stop = listenEvents(cb);
                 return () => stop();
-            }, [cb])
+            })
         }
 
         return { useEvents }
     })()
     const useEvents = Events.useEvents;
 
-    function useFetch(url, initialValue) {
-        const [iter, setIter] = useState(0);
-        const [result, setResult] = useState(initialValue);
-
-        const refresh = useCallback(() => {
-            setIter(v => v + 1)
-        }, [setIter]);
-
-        useEffect(() => {
+    function useFetch(initialValue, cb) {
+        const result = signal(initialValue)
+        const e = effect(() => {
+            const url = cb();
             const controller = new AbortController();
             fetch(url)
                 .then(r => r.json())
-                .then(d => setResult(d));
+                .then(d => result.set(d));
             return () => controller.abort();
-        }, [url, iter])
-        return [result, refresh];
+        })
+        return {
+            get: () => result.get(),
+            refresh: () => e.execute()
+        }
     }
 
     function useJobs() {
-        return useFetch('/api/jobs/get_list', []);
+        return useFetch([], () => '/api/jobs/get_list');
     }
 
-    function useJob(jobId) {
-        return useFetch('/api/jobs/get?job_id=' + jobId, null);
+    function useJob(jobIdCb) {
+        return useFetch(null, () => '/api/jobs/get?job_id=' + jobIdCb());
     }
 
-    function useJobExecutions(jobId) {
-        const [jobExecutions, refreshJobExecutions] = useFetch('/api/jobs/executions/get_list?job_id=' + jobId, []);
-        const eventCallback = useCallback((e) => {
+    function useJobExecutions(jobIdCb) {
+        const jobExecutions = useFetch([], () => '/api/jobs/executions/get_list?job_id=' + jobIdCb())
+        useEvents((e) => {
             if (
                 e.id === "job_execution_status_changed"
-                && e.payload.job_id === jobId) {
-                refreshJobExecutions()
+                && e.payload.job_id === jobIdCb()) {
+                jobExecutions.refresh();
             }
-        }, [jobId, refreshJobExecutions])
-        useEvents(eventCallback);
-        return [jobExecutions, refreshJobExecutions];
+        })
+        return { get: () => jobExecutions.get() }
     }
 
-    function useJobExecution(jobId, executionId) {
-        const [jobExecution, refreshJobExecution] = useFetch(`/api/jobs/executions/get?job_id=${jobId}&execution_id=${executionId}`, null);
-        const cb = (e) => {
+    function useJobExecution(cb) {
+        const jobExecution = useFetch(null, () => {
+            const { jobId, executionId } = cb();
+            return `/api/jobs/executions/get?job_id=${jobId}&execution_id=${executionId}`
+        })
+        useEvents((e) => {
+            const { jobId, executionId } = cb();
             if (
                 e.id === "job_execution_status_changed"
                 && e.payload.job_id === jobId
                 && e.payload.execution_id === executionId) {
-                refreshJobExecution()
+                jobExecution.refresh()
             }
-        }
-        const eventCallback = useCallback(cb, [jobId, executionId, refreshJobExecution])
-        useEvents(eventCallback);
-        return [jobExecution, refreshJobExecution];
+        });
+        return { get: () => jobExecution.get() }
     }
 
-    function useJobExecutionLog(jobId, executionId) {
-        const [_, setTick] = useState(true);
-        const log = useRef({ reset: true, chunks: [] });
-        useEffect(() => {
-            log.current.reset = true;
-            log.current.chunks.splice(0, log.current.chunks.length);
+    function useJobExecutionLog(cb) {
+        const log = {
+            reset: true,
+            chunks: []
+        }
+        const tick = signal(false);
+        effect(() => {
+            const { jobId, executionId } = cb();
+            log.reset = true;
+            log.chunks.splice(0, log.chunks.length);
             const fetchController = new AbortController();
             async function fetchLog() {
                 try {
@@ -198,16 +203,17 @@ const Data = (() => {
                         `/api/jobs/executions/logs/get?job_id=${jobId}&execution_id=${executionId}`,
                         fetchController,
                         (chunk) => {
-                            log.current.chunks.push(chunk);
-                            setTick(v => !v);
+                            log.chunks.push(chunk);
+                            tick.set(v => !v);
                         }
                     )
                 } catch (err) { }
             }
             fetchLog();
             return () => fetchController.abort();
-        }, [jobId, executionId])
-        return log;
+        })
+
+        return { log, tick };
     }
 
     return { useJobs, useJob, useJobExecutions, useJobExecution, useJobExecutionLog }
@@ -222,11 +228,13 @@ const useJobExecutionLog = Data.useJobExecutionLog;
 
 // #region Components
 
-component('x-header', () => {
+component('x-header', [], () => {
     const internalUrl = useInternalUrl();
-    const jobId = internalUrl.searchParams.get('job_id');
-    const executionId = internalUrl.searchParams.get('execution_id');
-    const breadcrumbs = (() => {
+
+    const breadcrumbs = compute(() => {
+        const jobId = internalUrl.get().searchParams.get('job_id');
+        const executionId = internalUrl.get().searchParams.get('execution_id');
+
         if (executionId) {
             return [
                 [jobId, `#job?job_id=${jobId}`],
@@ -239,212 +247,230 @@ component('x-header', () => {
             ]
         }
         return []
-    })()
+    })
 
-    return h('div', {}, [
-        h('h1', {}, [
-            h('a', { href: '#' }, "servitor"),
-        ]),
-        ...breadcrumbs.map(([text, link]) => (
-            h('div', { class: 'breadcrumb' }, [
-                link ? h('a', { href: link }, text) : h('span', {}, text)
-            ])
-        ))
-    ])
+    renderer(() =>
+        h('div', {}, [
+            h('h1', {}, [
+                h('a', { href: '#' }, "servitor"),
+            ]),
+            ...breadcrumbs.get().map(([text, link]) => (
+                h('div', { class: 'breadcrumb' }, [
+                    link ? h('a', { href: link }, text) : h('span', {}, text)
+                ])
+            ))
+        ])
+    )
 })
 
-component('x-job-list', () => {
-    const [jobs] = useJobs();
+component('x-job-list', [], () => {
+    const jobs = useJobs();
 
-    return h('div', {}, [
-        h('div', { class: 'x-section' }, [
-            h('b', {}, 'jobs')
-        ]),
-        table(null, jobs.map(j => [
-            h('a', { href: `#job?job_id=${j.job_id}` }, j.job_id)
-        ]))
-    ])
+    renderer(() =>
+        h('div', {}, [
+            h('div', { class: 'x-section' }, [
+                h('b', {}, 'jobs')
+            ]),
+            table(null, jobs.get().map(j => [
+                h('a', { href: `#job?job_id=${j.job_id}` }, j.job_id)
+            ]))
+        ])
+    )
 })
 
-component('x-job', () => {
+component('x-job', [], () => {
     const internalUrl = useInternalUrl()
-    const jobId = internalUrl.searchParams.get('job_id');
-    const [job] = useJob(jobId);
-    const [jobExecutions] = useJobExecutions(jobId);
+    const jobId = compute(() => internalUrl.get().searchParams.get('job_id'));
+    const job = useJob(() => jobId.get());
+    const jobExecutions = useJobExecutions(() => jobId.get());
 
-    const [inputValues, setInputValues] = useState({});
-    const inputCount = Object.keys(job?.input_spec || {}).length;
+    const inputValues = signal({});
+    const inputCount = compute(() => Object.keys(job.get()?.input_spec || {}).length);
 
     const onClickRun = async () => {
-        const inputValuesQueryParams = Object.keys(inputValues).map(key => {
-            return `&input_value_${key}=${encodeURIComponent(inputValues[key])}`
+        const inputValuesQueryParams = Object.keys(inputValues.get()).map(key => {
+            return `&input_value_${key}=${encodeURIComponent(inputValues.get()[key])}`
         }).join('');
-        await fetch(`/api/jobs/run?job_id=${jobId}${inputValuesQueryParams}`, { method: 'POST' });
+        await fetch(`/api/jobs/run?job_id=${jobId.get()}${inputValuesQueryParams}`, { method: 'POST' });
     }
 
-    return h('div', {}, [
-        job != null && inputCount > 0 && h('div', { class: 'x-section' }, [
-            h('p', {}, [
-                ...Object.keys(job.input_spec).map((key) => {
-                    return [
-                        h('label', {}, `${key}: `),
-                        h('input', {
-                            type: "text",
-                            oninput: (e) => setInputValues((v) => ({ ...v, [key]: e.target.value }))
-                        }),
-                        h('br')
-                    ]
-                }).flat(),
+    renderer(() =>
+        h('div', {}, [
+            job.get() != null && inputCount.get() > 0 && h('div', { class: 'x-section' }, [
+                h('p', {}, [
+                    ...Object.keys(job.get().input_spec).map((key) => {
+                        return [
+                            h('label', {}, `${key}: `),
+                            h('input', {
+                                type: "text",
+                                oninput: (e) => inputValues.set((v) => ({ ...v, [key]: e.target.value }))
+                            }),
+                            h('br')
+                        ]
+                    }).flat(),
+                ]),
+                h('p', {}, [
+                    h('button', { type: 'button', onclick: onClickRun }, 'run'),
+                ])
             ]),
-            h('p', {}, [
-                h('button', { type: 'button', onclick: onClickRun }, 'run'),
-            ])
-        ]),
-        h('div', { class: 'x-section' }, [
-            h('b', {}, 'executions'),
-            job != null && inputCount === 0 && h('button', { type: 'button', style: "margin-left: 1em;", onclick: onClickRun }, 'run'),
-        ]),
-        table([
-            h('b', {}, '#'),
-            '',
-            'status',
-            'started',
-            'duration',
-        ], jobExecutions.map(e => [
-            h('a', { href: `#job_execution?job_id=${jobId}&execution_id=${e.execution_id}` }, e.execution_id),
-            h('div', {}, [
-                h('div', { class: `status-circle is-${e.status}` }),
+            h('div', { class: 'x-section' }, [
+                h('b', {}, 'executions'),
+                job.get() != null && inputCount.get() === 0 && h('button', { type: 'button', style: "margin-left: 1em;", onclick: onClickRun }, 'run'),
             ]),
-            h('div', {}, [
-                h('span', {}, e.status)
-            ]),
-            h('div', {}, [
-                h('span', {}, formatTimestamp(e.status_history.find(i => i.status === "running")?.timestamp))
-            ]),
-            h('div', {},
-                (() => {
-                    const start = e.status_history.find(i => i.status === "running");
-                    if (start == null) return '';
-                    if (!["success", "failure", "cancelled"].includes(e.status)) {
-                        return h('x-duration-clock', { "start-timestamp": start.timestamp });
-                    }
-                    const end = e.status_history.find(i => i.status === e.status);
-                    return h('x-duration-clock', { "start-timestamp": start.timestamp, "end-timestamp": end?.timestamp || '' });
-                })()
-            ),
-        ])),
-    ])
+            table([
+                h('b', {}, '#'),
+                '',
+                'status',
+                'started',
+                'duration',
+            ], jobExecutions.get().map(e => [
+                h('a', { href: `#job_execution?job_id=${jobId.get()}&execution_id=${e.execution_id}` }, e.execution_id),
+                h('div', {}, [
+                    h('div', { class: `status-circle is-${e.status}` }),
+                ]),
+                h('div', {}, [
+                    h('span', {}, e.status)
+                ]),
+                h('div', {}, [
+                    h('span', {}, formatTimestamp(e.status_history.find(i => i.status === "running")?.timestamp))
+                ]),
+                h('div', {},
+                    (() => {
+                        const start = e.status_history.find(i => i.status === "running");
+                        if (start == null) return '';
+                        if (!["success", "failure", "cancelled"].includes(e.status)) {
+                            return h('x-duration-clock', { "start-timestamp": start.timestamp });
+                        }
+                        const end = e.status_history.find(i => i.status === e.status);
+                        return h('x-duration-clock', { "start-timestamp": start.timestamp, "end-timestamp": end?.timestamp || '' });
+                    })()
+                ),
+            ])),
+        ])
+    )
 })
 
-component('x-job-execution', () => {
+component('x-job-execution', [], () => {
     const internalUrl = useInternalUrl()
-    const jobId = internalUrl.searchParams.get('job_id');
-    const executionId = internalUrl.searchParams.get('execution_id');
+    const jobId = compute(() => internalUrl.get().searchParams.get('job_id'));
+    const executionId = compute(() => internalUrl.get().searchParams.get('execution_id'));
 
-    const [jobExecution] = useJobExecution(jobId, executionId);
+    const jobExecution = useJobExecution(() => ({
+        jobId: jobId.get(),
+        executionId: executionId.get()
+    }));
 
-    const cancelJobExecution = useCallback(() => {
-        fetch(`/api/jobs/executions/cancel?job_id=${jobId}&execution_id=${executionId}`, { method: 'POST' })
-    }, [jobId, executionId])
+    const cancelJobExecution = () => {
+        fetch(`/api/jobs/executions/cancel?job_id=${jobId.get()}&execution_id=${executionId.get()}`, { method: 'POST' })
+    };
 
-    const startTimestamp = (jobExecution?.status_history || []).find(i => i.status === "running")?.timestamp || null
-    const endTimestamp = ["success", "failure", "cancelled"].includes(jobExecution?.status)
-        ? jobExecution.status_history.find(i => i.status === jobExecution.status)?.timestamp || null
-        : null
+    const startTimestamp = compute(() => (jobExecution.get()?.status_history || []).find(i => i.status === "running")?.timestamp || null);
+    const endTimestamp = compute(() => ["success", "failure", "cancelled"].includes(jobExecution.get()?.status)
+        ? jobExecution.get().status_history.find(i => i.status === jobExecution.get().status)?.timestamp || null
+        : null)
 
-    const [follow, setFollow] = useState(false);
+    const follow = signal(false);
 
-    return h('div', {}, [
-        h('div', { class: `status-line is-${jobExecution?.status || ''}` }, jobExecution?.status || '...'),
-        h('div', { class: 'top-bar x-box' }, [
-            h('p', {}, [
-                startTimestamp && h('span', { class: 'x-kv-key' }, 'started'),
-                startTimestamp && h('span', {}, formatTimestamp(startTimestamp)),
+    renderer(() =>
+        h('div', {}, [
+            h('div', { class: `status-line is-${jobExecution.get()?.status || ''}` }, jobExecution.get()?.status || '...'),
+            h('div', { class: 'top-bar x-box' }, [
+                h('p', {}, [
+                    startTimestamp.get() && h('span', { class: 'x-kv-key' }, 'started'),
+                    startTimestamp.get() && h('span', {}, formatTimestamp(startTimestamp.get())),
 
-                startTimestamp && h('span', { class: 'x-kv-sep' }),
-                startTimestamp && h('span', { class: 'x-kv-key' }, 'duration'),
-                startTimestamp && h('x-duration-clock', { "start-timestamp": startTimestamp, "end-timestamp": endTimestamp || '' }),
+                    startTimestamp.get() && h('span', { class: 'x-kv-sep' }),
+                    startTimestamp.get() && h('span', { class: 'x-kv-key' }, 'duration'),
+                    startTimestamp.get() && h('x-duration-clock', { "start-timestamp": startTimestamp.get(), "end-timestamp": endTimestamp.get() || '' }),
 
-                startTimestamp && h('span', { class: 'x-kv-sep' }),
-                jobExecution?.status === "running" && h('button', { type: 'button', onclick: cancelJobExecution }, 'cancel')
-            ])
-        ]),
-        Object.keys(jobExecution?.input_values || {}).length > 0 && table(null, Object.keys(jobExecution.input_values).map(key => {
-            return [key, jobExecution.input_values[key]]
-        })),
-        h('x-job-execution-logs', { 'job-id': jobId, 'execution-id': executionId, 'follow-logs': follow.toString() }),
-        h('div', { class: `x-box follow-logs-box ${jobExecution?.status === "running" ? 'is-sticky' : ''}` }, [
-            h('p', {}, [
-                jobExecution?.status === "running" && h('button',
-                    { type: "button", onclick: () => setFollow(f => !f) },
-                    follow ? "stop following logs" : "follow logs"),
+                    startTimestamp.get() && h('span', { class: 'x-kv-sep' }),
+                    jobExecution.get()?.status === "running" && h('button', { type: 'button', onclick: cancelJobExecution }, 'cancel')
+                ])
+            ]),
+            Object.keys(jobExecution.get()?.input_values || {}).length > 0
+                ? table(null, Object.keys(jobExecution.get().input_values).map(key => {
+                    return [key, jobExecution.get().input_values[key]]
+                }))
+                : h('div'),
+            h('x-job-execution-logs', { 'job-id': jobId.get(), 'execution-id': executionId.get(), 'follow-logs': follow.get().toString() }),
+            h('div', { class: `x-box follow-logs-box ${jobExecution.get()?.status === "running" ? 'is-sticky' : ''}` }, [
+                h('p', {}, [
+                    jobExecution.get()?.status === "running" && h('button',
+                        { type: "button", onclick: () => follow.set(f => !f) },
+                        follow.get() ? "stop following logs" : "follow logs"),
 
-                jobExecution?.result && h('span', { class: 'x-kv-key' }, 'exit code'),
-                jobExecution?.result && h('span', {}, jobExecution.result.exit_code),
+                    jobExecution.get()?.result && h('span', { class: 'x-kv-key' }, 'exit code'),
+                    jobExecution.get()?.result && h('span', {}, jobExecution.get().result.exit_code),
 
-                jobExecution?.result?.message && h('span', { class: 'x-kv-sep' }),
-                jobExecution?.result?.message && h('span', { class: 'x-kv-key' }, 'message'),
-                jobExecution?.result?.message && h('span', {}, jobExecution.result.message)
+                    jobExecution.get()?.result?.message && h('span', { class: 'x-kv-sep' }),
+                    jobExecution.get()?.result?.message && h('span', { class: 'x-kv-key' }, 'message'),
+                    jobExecution.get()?.result?.message && h('span', {}, jobExecution.get().result.message)
+                ])
             ])
         ])
-    ])
+    )
+
 })
 
 component('x-job-execution-logs', ['job-id', 'execution-id', 'follow-logs'], (attrs) => {
     const jobId = attrs['job-id'];
     const executionId = attrs['execution-id'];
-    const followLogs = attrs['follow-logs'] === "true";
-    const log = useJobExecutionLog(jobId, executionId);
+    const followLogs = compute(() => attrs['follow-logs'].get() === "true");
+    const { log, tick } = useJobExecutionLog(() => ({
+        jobId: jobId.get(),
+        executionId: executionId.get()
+    }));
 
-    usePostRenderEffect(() => {
-        if (followLogs) {
-            window.document.documentElement.scrollTop = window.document.documentElement.scrollHeight;
-        }
-    });
+    baseRenderer((el) => {
+        tick.get();
 
-    useCustomDomPatcher((el) => {
         let pre = el.querySelector('pre');
         if (pre == null) {
             pre = h('pre', {});
             el.appendChild(pre);
         }
-        if (log.current.reset) {
+        if (log.reset) {
             pre.textContent = '';
-            log.current.reset = false;
+            log.reset = false;
         }
-        for (const chunk of log.current.chunks) {
+        for (const chunk of log.chunks) {
             pre.appendChild(document.createTextNode(chunk));
         }
-        log.current.chunks.splice(0, log.current.chunks.length);
+        log.chunks.splice(0, log.chunks.length);
+
+        if (followLogs.get()) {
+            window.document.documentElement.scrollTop = window.document.documentElement.scrollHeight;
+        }
     });
 })
 
 component('x-duration-clock', ["start-timestamp", "end-timestamp"], (attrs) => {
-    const startTimestamp = attrs["start-timestamp"];
-    const endTimestamp = attrs["end-timestamp"];
-    const startDate = new Date(startTimestamp)
-    const endDate = !!endTimestamp ? new Date(endTimestamp) : new Date()
+    const result = compute(() => {
+        const startTimestamp = attrs["start-timestamp"].get();
+        const endTimestamp = attrs["end-timestamp"].get();
+        const startDate = new Date(startTimestamp)
+        const endDate = !!endTimestamp ? new Date(endTimestamp) : new Date()
 
-    const [_, setTick] = useState(true);
-    useEffect(() => {
-        if (endTimestamp) return;
+        let duration = endDate - startDate;
+        const minutes = Math.floor(duration / (60 * 1000))
+        duration -= minutes * (60 * 1000);
+        const seconds = Math.floor(duration / (1000))
+
+        return [
+            minutes.toString().padStart(2, '0'),
+            seconds.toString().padStart(2, '0'),
+        ].join(':')
+    })
+
+    effect(() => {
+        if (attrs["end-timestamp"].get()) return;
         const interval = setInterval(() => {
-            setTick(v => !v);
+            result.execute();
         }, 1000)
         return () => clearInterval(interval);
-    }, [startTimestamp, endTimestamp])
+    })
 
-    let duration = endDate - startDate;
-    const minutes = Math.floor(duration / (60 * 1000))
-    duration -= minutes * (60 * 1000);
-    const seconds = Math.floor(duration / (1000))
-
-    const result = [
-        minutes.toString().padStart(2, '0'),
-        seconds.toString().padStart(2, '0'),
-    ].join(':')
-
-    return h('span', {}, result);
+    renderer(() => h('span', {}, result.get()));
 })
 
 function table(header, rows) {
@@ -482,21 +508,25 @@ const ROUTES = [
     [/^job_execution$/, 'x-job-execution'],
 ]
 
-component('x-router', () => {
+component('x-router', [], () => {
     const internalUrl = useInternalUrl();
-    for (const route of ROUTES) {
-        const [matcher, component] = route;
-        if (matcher.test(internalUrl.pathname)) {
-            return h(component)
+    renderer(() => {
+        for (const route of ROUTES) {
+            const [matcher, component] = route;
+            if (matcher.test(internalUrl.get().pathname)) {
+                return h(component)
+            }
         }
-    }
+    })
 })
 
-component('x-root', () => {
-    return h('div', {}, [
-        h('x-header'),
-        h('x-router')
-    ])
+component('x-root', [], () => {
+    renderer(() =>
+        h('div', {}, [
+            h('x-header'),
+            h('x-router')
+        ])
+    )
 })
 
 // #endregion
