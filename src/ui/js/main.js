@@ -1,30 +1,24 @@
 'use strict';
 
-const signal = poring.signal;
-const effect = poring.effect;
-const compute = poring.compute;
+const useSignal = poring.useSignal;
+const useEffect = poring.useEffect;
+const useComputed = poring.useComputed;
 const component = poring.component;
-const baseRenderer = poring.baseRenderer;
-const renderer = poring.renderer;
+const useBaseRenderer = poring.useBaseRenderer;
+const useRenderer = poring.useRenderer;
 const h = poring.h;
 
 // #region Routing
 
-function useInternalUrl() {
-    const value = signal();
-    effect(() => {
-        function handler() {
-            const hash = document.location.hash.replace(/^#/, '');
-            value.set(new URL('internal:' + hash));
-        }
-        handler();
-        window.addEventListener('hashchange', handler);
-        return () => window.removeEventListener('hashchange', handler);
-    })
-    return {
-        get: () => value.get()
+const internalUrl = (() => {
+    const value = useuseSignal();
+    const updateSignal = () => {
+        const hash = document.location.hash.replace(/^#/, '');
+        value.set(new URL('internal:' + hash));
     }
-}
+    window.addEventListener('hashchange', updateSignal);
+    return value;
+})();
 
 // #endregion
 
@@ -35,12 +29,10 @@ const Networking = (() => {
     async function fetchChunks(url, controller, onchunk) {
         const response = await fetch(url, { signal: controller.signal });
         const reader = response.body.getReader();
-        const decoder = new TextDecoder();
         function read() {
             return reader.read().then((result) => {
                 if (!result.value) return;
-                const chunk = decoder.decode(result.value);
-                onchunk(chunk)
+                onchunk(result.value)
                 return read();
             });
         }
@@ -88,42 +80,32 @@ const Data = (() => {
 
         async function fetchEventsForever() {
             const controller = new AbortController();
-            const response = await fetch('/api/events', { signal: controller.signal });
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            function read() {
-                return reader.read().then((result) => {
-                    if (!result.value) return;
+            await Networking.fetchChunks('/api/events', controller, (chunk) => {
+                const newLinesPositions = chunk
+                    .reduce((result, byte, pos) => {
+                        if (byte === 10) {
+                            result.push(pos);
+                        }
+                        return result;
+                    }, []);
 
-                    const newLinesPositions = result.value
-                        .reduce((result, byte, pos) => {
-                            if (byte === 10) {
-                                result.push(pos);
-                            }
-                            return result;
-                        }, []);
+                const events = [];
+                let startPos = 0;
+                for (const newLinePos of newLinesPositions) {
+                    events.push(JSON.parse(decoder.decode(chunk.slice(startPos, newLinePos))));
+                    startPos = newLinePos + 1;
+                }
 
-                    const events = [];
-                    let startPos = 0;
-                    for (const newLinePos of newLinesPositions) {
-                        events.push(JSON.parse(decoder.decode(result.value.slice(startPos, newLinePos))));
-                        startPos = newLinePos + 1;
-                    }
-
-                    for (const event of events) {
-                        eventListeners.slice(0).forEach(cb => cb(event));
-                    }
-
-                    return read();
-                });
-            }
-            return read();
+                for (const event of events) {
+                    eventListeners.slice(0).forEach(cb => cb(event));
+                }
+            })
         }
 
         connectForever();
 
         function useEvents(cb) {
-            effect(() => {
+            useEffect(() => {
                 const stop = listenEvents(cb);
                 return () => stop();
             })
@@ -134,8 +116,8 @@ const Data = (() => {
     const useEvents = Events.useEvents;
 
     function useFetch(initialValue, cb) {
-        const result = signal(initialValue)
-        const e = effect(() => {
+        const result = useSignal(initialValue)
+        const e = useEffect(() => {
             const url = cb();
             const controller = new AbortController();
             fetch(url)
@@ -191,19 +173,20 @@ const Data = (() => {
             reset: true,
             chunks: []
         }
-        const tick = signal(false);
-        effect(() => {
+        const tick = useSignal(false);
+        useEffect(() => {
             const { jobId, executionId } = cb();
             log.reset = true;
             log.chunks.splice(0, log.chunks.length);
             const fetchController = new AbortController();
             async function fetchLog() {
                 try {
+                    const decoder = new TextDecoder();
                     await Networking.fetchChunks(
                         `/api/jobs/executions/logs/get?job_id=${jobId}&execution_id=${executionId}`,
                         fetchController,
                         (chunk) => {
-                            log.chunks.push(chunk);
+                            log.chunks.push(decoder.decode(chunk));
                             tick.set(v => !v);
                         }
                     )
@@ -284,7 +267,7 @@ component('x-job', [], () => {
     const job = useJob(() => jobId.get());
     const jobExecutions = useJobExecutions(() => jobId.get());
 
-    const inputValues = signal({});
+    const inputValues = useSignal({});
     const inputCount = compute(() => Object.keys(job.get()?.input_spec || {}).length);
 
     const onClickRun = async () => {
@@ -369,7 +352,7 @@ component('x-job-execution', [], () => {
         ? jobExecution.get().status_history.find(i => i.status === jobExecution.get().status)?.timestamp || null
         : null)
 
-    const follow = signal(false);
+    const follow = useSignal(false);
 
     renderer(() =>
         h('div', {}, [
@@ -462,7 +445,7 @@ component('x-duration-clock', ["start-timestamp", "end-timestamp"], (attrs) => {
         ].join(':')
     })
 
-    effect(() => {
+    useEffect(() => {
         if (attrs["end-timestamp"].get()) return;
         const interval = setInterval(() => {
             result.execute();

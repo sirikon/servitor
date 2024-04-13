@@ -11,7 +11,8 @@ const poring = (() => {
         createdEffects: null,
     };
 
-    const trackingContext = {
+    const signalTrackingContext = {
+        active: false,
         accessedSignals: null
     }
 
@@ -25,8 +26,11 @@ const poring = (() => {
         }
 
         get() {
-            if (trackingContext.accessedSignals != null && trackingContext.accessedSignals.indexOf(this) === -1) {
-                trackingContext.accessedSignals.push(this);
+            if (
+                signalTrackingContext.active
+                && signalTrackingContext.accessedSignals.indexOf(this) === -1
+            ) {
+                signalTrackingContext.accessedSignals.push(this);
             }
             return this.value;
         }
@@ -61,60 +65,57 @@ const poring = (() => {
             this.listeners.splice(0, this.listeners.length);
         }
     }
-    function signal(initialValue) { return new Signal(initialValue); }
+    function useSignal(initialValue) { return new Signal(initialValue); }
 
-    function track(cb) {
-        const oldAccessedSignals = trackingContext.accessedSignals;
-    
-        trackingContext.accessedSignals = [];
-    
+    function trackSignals(cb) {
+        const oldAccessedSignals = signalTrackingContext.accessedSignals;
+        signalTrackingContext.accessedSignals = [];
         cb();
-        const accessedSignals = trackingContext.accessedSignals;
-    
-        trackingContext.accessedSignals = oldAccessedSignals;
-    
+        const accessedSignals = signalTrackingContext.accessedSignals;
+        signalTrackingContext.accessedSignals = oldAccessedSignals;
         return accessedSignals;
     }
 
-    function effect(cb) {
-        const currentAccessedSignals = [];
-        let cleanup_func = null;
+    function useEffect(cb) {
+        const dependedSignals = [];
 
+        let cleanup_func = null;
         function cleanup() {
             typeof cleanup_func === "function" && cleanup_func();
         }
 
         function execute() {
             cleanup();
-            const newAccessedSignals = track(() => {
+            const newDependedSignals = trackSignals(() => {
                 cleanup_func = cb();
             });
 
-            for(let i = currentAccessedSignals.length - 1; i >= 0; i--) {
-                const signal = currentAccessedSignals[i];
-                if (newAccessedSignals.indexOf(signal) === -1) {
+            for (let i = dependedSignals.length - 1; i >= 0; i--) {
+                const signal = dependedSignals[i];
+                if (newDependedSignals.indexOf(signal) === -1) {
                     signal.unlisten(execute);
-                    currentAccessedSignals.splice(i, 1);
+                    dependedSignals.splice(i, 1);
                 }
             }
 
-            for (const signal of newAccessedSignals) {
-                if (currentAccessedSignals.indexOf(signal) === -1) {
+            for (const signal of newDependedSignals) {
+                if (dependedSignals.indexOf(signal) === -1) {
                     signal.listen(execute);
-                    currentAccessedSignals.push(signal);
+                    dependedSignals.push(signal);
                 }
             }
         }
 
         function dispose() {
-            for (const signal of currentAccessedSignals) {
+            for (const signal of dependedSignals) {
                 signal.unlisten(execute);
             }
+            dependedSignals.splice(0, dependedSignals.length);
             cleanup();
         }
 
         if (scopeContext.active) {
-            scopeContext.createdEffects.push({dispose});
+            scopeContext.createdEffects.push({ dispose });
         }
 
         execute();
@@ -122,22 +123,22 @@ const poring = (() => {
         return { dispose, execute };
     }
 
-    function compute(cb) {
-        let s = signal()
-        const e = effect(() => {
-            s.set(cb())
+    function useComputed(cb) {
+        const signal = useSignal()
+        const effect = useEffect(() => {
+            signal.set(cb())
         })
         return {
-            get: () => s.get(),
-            execute: () => e.execute(),
+            get: () => signal.get(),
+            execute: () => effect.execute(),
             dispose: () => {
-                e.dispose();
-                s.dispose();
+                effect.dispose();
+                signal.dispose();
             }
         };
     }
 
-    function scope(params, cb) {
+    function runScope(params, cb) {
         const oldActive = scopeContext.active;
         const oldParams = scopeContext.params;
         const oldCreatedSignals = scopeContext.createdSignals;
@@ -158,10 +159,10 @@ const poring = (() => {
         scopeContext.createdEffects = oldCreatedEffects;
 
         function dispose() {
-            for(const effect of effects) {
+            for (const effect of effects) {
                 effect.dispose();
             }
-            for(const signal of signals) {
+            for (const signal of signals) {
                 signal.dispose();
             }
         }
@@ -366,18 +367,16 @@ const poring = (() => {
         customElements.define(tag, Component);
     }
 
-    function baseRenderer(cb) {
+    function useBaseRenderer(cb) {
         const component = scopeContext.params.component;
-        effect(() => {
-            cb(component)
-        })
+        useEffect(() => cb(component));
     }
 
-    function renderer(cb) {
-        baseRenderer((c) => patchDom(c, cb()))
+    function useRenderer(cb) {
+        useBaseRenderer((c) => patchDom(c, cb()))
     }
 
     // #endregion    
 
-    return { signal, effect, compute, component, h, baseRenderer, renderer, patchDom }
+    return { useSignal, useEffect, useComputed, component, h, useBaseRenderer, useRenderer, patchDom }
 })();
