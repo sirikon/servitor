@@ -69,9 +69,11 @@ const poring = (() => {
 
     function trackSignals(cb) {
         const oldAccessedSignals = signalTrackingContext.accessedSignals;
+        signalTrackingContext.active = true;
         signalTrackingContext.accessedSignals = [];
         cb();
         const accessedSignals = signalTrackingContext.accessedSignals;
+        signalTrackingContext.active = false;
         signalTrackingContext.accessedSignals = oldAccessedSignals;
         return accessedSignals;
     }
@@ -345,8 +347,8 @@ const poring = (() => {
             }
 
             build() {
-                this.scope = scope({ component: this }, () => {
-                    this.attributeSignals = Object.fromEntries(attributes.map(attr => [attr, signal(this.getAttribute(attr))]));
+                this.scope = runScope({ component: this }, () => {
+                    this.attributeSignals = Object.fromEntries(attributes.map(attr => [attr, useSignal(this.getAttribute(attr))]));
                     logic(this.attributeSignals, this);
                 })
             }

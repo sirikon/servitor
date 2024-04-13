@@ -11,12 +11,13 @@ const h = poring.h;
 // #region Routing
 
 const internalUrl = (() => {
-    const value = useuseSignal();
+    const value = useSignal();
     const updateSignal = () => {
         const hash = document.location.hash.replace(/^#/, '');
         value.set(new URL('internal:' + hash));
     }
     window.addEventListener('hashchange', updateSignal);
+    updateSignal();
     return value;
 })();
 
@@ -79,6 +80,7 @@ const Data = (() => {
         }
 
         async function fetchEventsForever() {
+            const decoder = new TextDecoder();
             const controller = new AbortController();
             await Networking.fetchChunks('/api/events', controller, (chunk) => {
                 const newLinesPositions = chunk
@@ -115,49 +117,50 @@ const Data = (() => {
     })()
     const useEvents = Events.useEvents;
 
-    function useFetch(initialValue, cb) {
+    function useFetch(initialValue, urlSignal) {
         const result = useSignal(initialValue)
-        const e = useEffect(() => {
-            const url = cb();
+        const effect = useEffect(() => {
             const controller = new AbortController();
-            fetch(url)
+            fetch(urlSignal.get())
                 .then(r => r.json())
                 .then(d => result.set(d));
             return () => controller.abort();
         })
         return {
             get: () => result.get(),
-            refresh: () => e.execute()
+            refresh: () => effect.execute()
         }
     }
 
     function useJobs() {
-        return useFetch([], () => '/api/jobs/get_list');
+        return useFetch([], useSignal('/api/jobs/get_list'));
     }
 
-    function useJob(jobIdCb) {
-        return useFetch(null, () => '/api/jobs/get?job_id=' + jobIdCb());
+    function useJob(jobIdSignal) {
+        return useFetch(null, useComputed(() => '/api/jobs/get?job_id=' + jobIdSignal.get()));
     }
 
-    function useJobExecutions(jobIdCb) {
-        const jobExecutions = useFetch([], () => '/api/jobs/executions/get_list?job_id=' + jobIdCb())
+    function useJobExecutions(jobIdSignal) {
+        const jobExecutions = useFetch([], useComputed(() => '/api/jobs/executions/get_list?job_id=' + jobIdSignal.get()))
         useEvents((e) => {
             if (
                 e.id === "job_execution_status_changed"
-                && e.payload.job_id === jobIdCb()) {
+                && e.payload.job_id === jobIdSignal.get()) {
                 jobExecutions.refresh();
             }
         })
         return { get: () => jobExecutions.get() }
     }
 
-    function useJobExecution(cb) {
-        const jobExecution = useFetch(null, () => {
-            const { jobId, executionId } = cb();
+    function useJobExecution(jobIdSignal, executionIdSignal) {
+        const jobExecution = useFetch(null, useComputed(() => {
+            const jobId = jobIdSignal.get();
+            const executionId = executionIdSignal.get();
             return `/api/jobs/executions/get?job_id=${jobId}&execution_id=${executionId}`
-        })
+        }))
         useEvents((e) => {
-            const { jobId, executionId } = cb();
+            const jobId = jobIdSignal.get();
+            const executionId = executionIdSignal.get();
             if (
                 e.id === "job_execution_status_changed"
                 && e.payload.job_id === jobId
@@ -168,14 +171,15 @@ const Data = (() => {
         return { get: () => jobExecution.get() }
     }
 
-    function useJobExecutionLog(cb) {
+    function useJobExecutionLog(jobIdSignal, executionIdSignal) {
         const log = {
             reset: true,
             chunks: []
         }
         const tick = useSignal(false);
         useEffect(() => {
-            const { jobId, executionId } = cb();
+            const jobId = jobIdSignal.get();
+            const executionId = executionIdSignal.get();
             log.reset = true;
             log.chunks.splice(0, log.chunks.length);
             const fetchController = new AbortController();
@@ -195,7 +199,6 @@ const Data = (() => {
             fetchLog();
             return () => fetchController.abort();
         })
-
         return { log, tick };
     }
 
@@ -212,11 +215,10 @@ const useJobExecutionLog = Data.useJobExecutionLog;
 // #region Components
 
 component('x-header', [], () => {
-    const internalUrl = useInternalUrl();
-
-    const breadcrumbs = compute(() => {
-        const jobId = internalUrl.get().searchParams.get('job_id');
-        const executionId = internalUrl.get().searchParams.get('execution_id');
+    const breadcrumbs = useComputed(() => {
+        const searchParams = internalUrl.get().searchParams;
+        const jobId = searchParams.get('job_id');
+        const executionId = searchParams.get('execution_id');
 
         if (executionId) {
             return [
@@ -232,7 +234,7 @@ component('x-header', [], () => {
         return []
     })
 
-    renderer(() =>
+    useRenderer(() =>
         h('div', {}, [
             h('h1', {}, [
                 h('a', { href: '#' }, "servitor"),
@@ -249,7 +251,7 @@ component('x-header', [], () => {
 component('x-job-list', [], () => {
     const jobs = useJobs();
 
-    renderer(() =>
+    useRenderer(() =>
         h('div', {}, [
             h('div', { class: 'x-section' }, [
                 h('b', {}, 'jobs')
@@ -262,13 +264,12 @@ component('x-job-list', [], () => {
 })
 
 component('x-job', [], () => {
-    const internalUrl = useInternalUrl()
-    const jobId = compute(() => internalUrl.get().searchParams.get('job_id'));
-    const job = useJob(() => jobId.get());
-    const jobExecutions = useJobExecutions(() => jobId.get());
+    const jobId = useComputed(() => internalUrl.get().searchParams.get('job_id'));
+    const job = useJob(jobId);
+    const jobExecutions = useJobExecutions(jobId);
 
     const inputValues = useSignal({});
-    const inputCount = compute(() => Object.keys(job.get()?.input_spec || {}).length);
+    const inputCount = useComputed(() => Object.keys(job.get()?.input_spec || {}).length);
 
     const onClickRun = async () => {
         const inputValuesQueryParams = Object.keys(inputValues.get()).map(key => {
@@ -277,7 +278,7 @@ component('x-job', [], () => {
         await fetch(`/api/jobs/run?job_id=${jobId.get()}${inputValuesQueryParams}`, { method: 'POST' });
     }
 
-    renderer(() =>
+    useRenderer(() =>
         h('div', {}, [
             job.get() != null && inputCount.get() > 0 && h('div', { class: 'x-section' }, [
                 h('p', {}, [
@@ -334,27 +335,23 @@ component('x-job', [], () => {
 })
 
 component('x-job-execution', [], () => {
-    const internalUrl = useInternalUrl()
-    const jobId = compute(() => internalUrl.get().searchParams.get('job_id'));
-    const executionId = compute(() => internalUrl.get().searchParams.get('execution_id'));
+    const jobId = useComputed(() => internalUrl.get().searchParams.get('job_id'));
+    const executionId = useComputed(() => internalUrl.get().searchParams.get('execution_id'));
 
-    const jobExecution = useJobExecution(() => ({
-        jobId: jobId.get(),
-        executionId: executionId.get()
-    }));
+    const jobExecution = useJobExecution(jobId, executionId);
 
     const cancelJobExecution = () => {
         fetch(`/api/jobs/executions/cancel?job_id=${jobId.get()}&execution_id=${executionId.get()}`, { method: 'POST' })
     };
 
-    const startTimestamp = compute(() => (jobExecution.get()?.status_history || []).find(i => i.status === "running")?.timestamp || null);
-    const endTimestamp = compute(() => ["success", "failure", "cancelled"].includes(jobExecution.get()?.status)
+    const startTimestamp = useComputed(() => (jobExecution.get()?.status_history || []).find(i => i.status === "running")?.timestamp || null);
+    const endTimestamp = useComputed(() => ["success", "failure", "cancelled"].includes(jobExecution.get()?.status)
         ? jobExecution.get().status_history.find(i => i.status === jobExecution.get().status)?.timestamp || null
         : null)
 
     const follow = useSignal(false);
 
-    renderer(() =>
+    useRenderer(() =>
         h('div', {}, [
             h('div', { class: `status-line is-${jobExecution.get()?.status || ''}` }, jobExecution.get()?.status || '...'),
             h('div', { class: 'top-bar x-box' }, [
@@ -398,13 +395,10 @@ component('x-job-execution', [], () => {
 component('x-job-execution-logs', ['job-id', 'execution-id', 'follow-logs'], (attrs) => {
     const jobId = attrs['job-id'];
     const executionId = attrs['execution-id'];
-    const followLogs = compute(() => attrs['follow-logs'].get() === "true");
-    const { log, tick } = useJobExecutionLog(() => ({
-        jobId: jobId.get(),
-        executionId: executionId.get()
-    }));
+    const followLogs = useComputed(() => attrs['follow-logs'].get() === "true");
+    const { log, tick } = useJobExecutionLog(jobId, executionId);
 
-    baseRenderer((el) => {
+    useBaseRenderer((el) => {
         tick.get();
 
         let pre = el.querySelector('pre');
@@ -428,7 +422,7 @@ component('x-job-execution-logs', ['job-id', 'execution-id', 'follow-logs'], (at
 })
 
 component('x-duration-clock', ["start-timestamp", "end-timestamp"], (attrs) => {
-    const result = compute(() => {
+    const result = useComputed(() => {
         const startTimestamp = attrs["start-timestamp"].get();
         const endTimestamp = attrs["end-timestamp"].get();
         const startDate = new Date(startTimestamp)
@@ -453,7 +447,7 @@ component('x-duration-clock', ["start-timestamp", "end-timestamp"], (attrs) => {
         return () => clearInterval(interval);
     })
 
-    renderer(() => h('span', {}, result.get()));
+    useRenderer(() => h('span', {}, result.get()));
 })
 
 function table(header, rows) {
@@ -492,8 +486,7 @@ const ROUTES = [
 ]
 
 component('x-router', [], () => {
-    const internalUrl = useInternalUrl();
-    renderer(() => {
+    useRenderer(() => {
         for (const route of ROUTES) {
             const [matcher, component] = route;
             if (matcher.test(internalUrl.get().pathname)) {
@@ -504,7 +497,7 @@ component('x-router', [], () => {
 })
 
 component('x-root', [], () => {
-    renderer(() =>
+    useRenderer(() =>
         h('div', {}, [
             h('x-header'),
             h('x-router')
