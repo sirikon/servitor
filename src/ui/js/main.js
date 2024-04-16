@@ -1,12 +1,6 @@
 'use strict';
 
-const useSignal = poring.useSignal;
-const useEffect = poring.useEffect;
-const useComputed = poring.useComputed;
-const component = poring.component;
-const useBaseRenderer = poring.useBaseRenderer;
-const useRenderer = poring.useRenderer;
-const h = poring.h;
+const { useSignal, useEffect, useComputed, component, h, useBaseRenderer, useRenderer } = poring;
 
 // #region Routing
 
@@ -279,47 +273,48 @@ component('x-job', [], () => {
   }
 
   useRenderer(() =>
-    h('div', {}, [
+    h('div', [
       job.get() != null && inputCount.get() > 0 && h('div', { class: 'x-section' }, [
-        h('p', {}, [
+        h('p', [
           ...Object.keys(job.get().input_spec).map((key) => {
             return [
               h('label', {}, `${key}: `),
               h('input', {
                 type: "text",
+              }, {
                 oninput: (e) => inputValues.set((v) => ({ ...v, [key]: e.target.value }))
               }),
               h('br')
             ]
           }).flat(),
         ]),
-        h('p', {}, [
-          h('button', { type: 'button', onclick: onClickRun }, 'run'),
+        h('p', [
+          h('button', { type: 'button' }, { onclick: onClickRun }, 'run'),
         ])
       ]),
       h('div', { class: 'x-section' }, [
-        h('b', {}, 'executions'),
-        job.get() != null && inputCount.get() === 0 && h('button', { type: 'button', style: "margin-left: 1em;", onclick: onClickRun }, 'run'),
+        h('b', 'executions'),
+        job.get() != null && inputCount.get() === 0 && h('button', { type: 'button', style: "margin-left: 1em;" }, { onclick: onClickRun }, 'run'),
       ]),
       table([
-        h('b', {}, '#'),
+        h('b', '#'),
         '',
         'status',
         'started',
         'duration',
       ], jobExecutions.get().map(e => [
         h('a', { href: `#job_execution?job_id=${jobId.get()}&execution_id=${e.execution_id}` }, e.execution_id),
-        h('div', {}, [
+        h('div', [
           h('div', { class: `status-circle is-${e.status}` }),
         ]),
-        h('div', {}, [
-          h('span', {}, e.status)
+        h('div', [
+          h('span', e.status)
         ]),
-        h('div', {}, [
-          h('span', {}, formatTimestamp(e.status_history.find(i => i.status === "running")?.timestamp))
+        h('div', [
+          h('span', formatTimestamp(e.status_history.find(i => i.status === "running")?.timestamp))
         ]),
-        h('div', {},
-          (() => {
+        h('div',
+          [(() => {
             const start = e.status_history.find(i => i.status === "running");
             if (start == null) return '';
             if (!["success", "failure", "cancelled"].includes(e.status)) {
@@ -327,7 +322,7 @@ component('x-job', [], () => {
             }
             const end = e.status_history.find(i => i.status === e.status);
             return h('x-duration-clock', { "start-timestamp": start.timestamp, "end-timestamp": end?.timestamp || '' });
-          })()
+          })()]
         ),
       ])),
     ])
@@ -352,10 +347,10 @@ component('x-job-execution', [], () => {
   const follow = useSignal(false);
 
   useRenderer(() =>
-    h('div', {}, [
+    h('div', [
       h('div', { class: `status-line is-${jobExecution.get()?.status || ''}` }, jobExecution.get()?.status || '...'),
       h('div', { class: 'top-bar x-box' }, [
-        h('p', {}, [
+        h('p', [
           startTimestamp.get() && h('span', { class: 'x-kv-key' }, 'started'),
           startTimestamp.get() && h('span', {}, formatTimestamp(startTimestamp.get())),
 
@@ -364,7 +359,7 @@ component('x-job-execution', [], () => {
           startTimestamp.get() && h('x-duration-clock', { "start-timestamp": startTimestamp.get(), "end-timestamp": endTimestamp.get() || '' }),
 
           startTimestamp.get() && h('span', { class: 'x-kv-sep' }),
-          jobExecution.get()?.status === "running" && h('button', { type: 'button', onclick: cancelJobExecution }, 'cancel')
+          jobExecution.get()?.status === "running" && h('button', { type: 'button' }, { onclick: cancelJobExecution }, 'cancel')
         ])
       ]),
       Object.keys(jobExecution.get()?.input_values || {}).length > 0
@@ -374,17 +369,17 @@ component('x-job-execution', [], () => {
         : h('div'),
       h('x-job-execution-logs', { 'job-id': jobId.get(), 'execution-id': executionId.get(), 'follow-logs': follow.get().toString() }),
       h('div', { class: `x-box follow-logs-box ${jobExecution.get()?.status === "running" ? 'is-sticky' : ''}` }, [
-        h('p', {}, [
+        h('p', [
           jobExecution.get()?.status === "running" && h('button',
-            { type: "button", onclick: () => follow.set(f => !f) },
+            { type: "button" }, { onclick: () => follow.set(f => !f) },
             follow.get() ? "stop following logs" : "follow logs"),
 
           jobExecution.get()?.result && h('span', { class: 'x-kv-key' }, 'exit code'),
-          jobExecution.get()?.result && h('span', {}, jobExecution.get().result.exit_code),
+          jobExecution.get()?.result && h('span', jobExecution.get().result.exit_code),
 
           jobExecution.get()?.result?.message && h('span', { class: 'x-kv-sep' }),
           jobExecution.get()?.result?.message && h('span', { class: 'x-kv-key' }, 'message'),
-          jobExecution.get()?.result?.message && h('span', {}, jobExecution.get().result.message)
+          jobExecution.get()?.result?.message && h('span', jobExecution.get().result.message)
         ])
       ])
     ])
@@ -403,7 +398,7 @@ component('x-job-execution-logs', ['job-id', 'execution-id', 'follow-logs'], (at
 
     let pre = el.querySelector('pre');
     if (pre == null) {
-      pre = h('pre', {});
+      pre = document.createElement('pre')
       el.appendChild(pre);
     }
     if (log.reset) {
@@ -447,7 +442,7 @@ component('x-duration-clock', ["start-timestamp", "end-timestamp"], (attrs) => {
     return () => clearInterval(interval);
   })
 
-  useRenderer(() => h('span', {}, result.get()));
+  useRenderer(() => h('span', result.get()));
 })
 
 function table(header, rows) {
@@ -498,7 +493,7 @@ component('x-router', [], () => {
 
 component('x-root', [], () => {
   useRenderer(() =>
-    h('div', {}, [
+    h('div', [
       h('x-header'),
       h('x-router')
     ])
