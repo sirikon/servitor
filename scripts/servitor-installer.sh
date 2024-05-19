@@ -77,6 +77,7 @@ User=${SERVITOR_USER}
 WorkingDirectory=${SERVITOR_HOME}
 Environment="PYTHONPATH=${SERVITOR_ROOT}/src/python"
 Environment="SERVITOR_UI_ROOT=${SERVITOR_ROOT}/src/ui"
+EnvironmentFile="-${SERVITOR_HOME}/env"
 ExecStart=/usr/bin/python3 -m servitor
 UMask=${SERVITOR_UMASK}
 
