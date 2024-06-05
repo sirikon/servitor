@@ -214,15 +214,17 @@ component('x-header', [], () => {
     const jobId = searchParams.get('job_id');
     const executionId = searchParams.get('execution_id');
 
+    const jobIdDisplay = jobId ? jobId.split('/').join(' / ') : null;
+
     if (executionId) {
       return [
-        [jobId, `#job?job_id=${jobId}`],
+        [jobIdDisplay, `#job?job_id=${jobId}`],
         [`#${executionId}`, null]
       ]
     }
     if (jobId) {
       return [
-        [jobId, null]
+        [jobIdDisplay, null]
       ]
     }
     return []
@@ -244,14 +246,50 @@ component('x-header', [], () => {
 
 component('x-job-list', [], () => {
   const jobs = useJobs();
+  const jobTree = useComputed(() => {
+    const jobList = jobs.get()
+    jobList.sort(((a, b) => a.job_id > b.job_id))
+
+    const result = [];
+    let currentFolder = null;
+    let currentDepth = 0;
+    for (const job of jobList) {
+      const parts = job.job_id.split('/');
+      currentDepth = parts.length - 1;
+      const folder = parts.length > 1
+        ? parts.slice(0, parts.length - 1).join('/')
+        : null
+
+      if (folder !== currentFolder) {
+        currentFolder = folder;
+        result.push({
+          type: "folder",
+          name: parts[parts.length - 2],
+          depth: currentDepth - 1
+        });
+      }
+
+      const name = parts[parts.length - 1];
+      result.push({
+        type: "job",
+        name,
+        depth: currentDepth,
+        link: `#job?job_id=${job.job_id}`
+      })
+    }
+
+    return result;
+  })
 
   useRenderer(() =>
     h('div', {}, [
       h('div', { class: 'x-section' }, [
         h('b', {}, 'jobs')
       ]),
-      table(null, jobs.get().map(j => [
-        h('a', { href: `#job?job_id=${j.job_id}` }, j.job_id)
+      table(null, jobTree.get().map(j => [
+        j.type === "folder"
+          ? h('span', { style: `margin-left:${j.depth}em;` }, j.name)
+          : h('a', { href: j.link, style: `margin-left:${j.depth}em;` }, j.name),
       ]))
     ])
   )

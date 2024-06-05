@@ -100,7 +100,7 @@ x-header>div {
 x-header a {
     color: inherit;
     text-decoration-thickness: 2px;
-    text-decoration-color: gray;
+    text-decoration-color: #cecece;
 }
 
 x-header div.breadcrumb {
