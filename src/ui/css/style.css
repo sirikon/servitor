@@ -39,7 +39,6 @@ body {
 
 .x-table {
     margin: 1em 0;
-    background-color: var(--box-background-color);
     box-shadow: var(--box-shadow);
     display: table;
     width: 100%;
@@ -47,6 +46,7 @@ body {
 
 .x-table .row {
     display: table-row;
+    background-color: var(--box-background-color);
 }
 
 .x-table .cell {
@@ -73,6 +73,26 @@ body {
 
 .x-table .header .cell {
     background-color: var(--table-header-background-color);
+    border-width: 0;
+}
+
+.x-tree {
+    margin: 1em 0;
+    display: table;
+    width: 100%;
+}
+
+.x-tree .row {
+    display: block;
+    padding: .5em 1em;
+    background-color: var(--box-background-color);
+    border: dashed var(--table-cell-border-color);
+    border-width: 0 0 1px 0;
+    white-space: nowrap;
+}
+
+.x-tree .row.is-folder {
+    background-color: transparent;
     border-width: 0;
 }
 

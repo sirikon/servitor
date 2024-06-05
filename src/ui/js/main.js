@@ -252,10 +252,10 @@ component('x-job-list', [], () => {
 
     const result = [];
     let currentFolder = null;
-    let currentDepth = 0;
+
     for (const job of jobList) {
       const parts = job.job_id.split('/');
-      currentDepth = parts.length - 1;
+      const depth = parts.length - 1;
       const folder = parts.length > 1
         ? parts.slice(0, parts.length - 1).join('/')
         : null
@@ -265,7 +265,7 @@ component('x-job-list', [], () => {
         result.push({
           type: "folder",
           name: parts[parts.length - 2],
-          depth: currentDepth - 1
+          depth: depth - 1
         });
       }
 
@@ -273,7 +273,7 @@ component('x-job-list', [], () => {
       result.push({
         type: "job",
         name,
-        depth: currentDepth,
+        depth: depth,
         link: `#job?job_id=${job.job_id}`
       })
     }
@@ -283,14 +283,13 @@ component('x-job-list', [], () => {
 
   useRenderer(() =>
     h('div', {}, [
-      h('div', { class: 'x-section' }, [
-        h('b', {}, 'jobs')
-      ]),
-      table(null, jobTree.get().map(j => [
-        j.type === "folder"
-          ? h('span', { style: `margin-left:${j.depth}em;` }, j.name)
-          : h('a', { href: j.link, style: `margin-left:${j.depth}em;` }, j.name),
-      ]))
+      h('div', { class: "x-tree" },
+        jobTree.get().map((j) => h('div', { class: "row is-" + j.type, style: `margin-left:${j.depth}em;` }, [
+          j.type === "folder"
+            ? h('b', j.name)
+            : h('a', { href: j.link }, j.name),
+        ]))
+      )
     ])
   )
 })
@@ -331,8 +330,7 @@ component('x-job', [], () => {
         ])
       ]),
       h('div', { class: 'x-section' }, [
-        h('b', 'executions'),
-        job.get() != null && inputCount.get() === 0 && h('button', { type: 'button', style: "margin-left: 1em;" }, { onclick: onClickRun }, 'run'),
+        job.get() != null && inputCount.get() === 0 && h('button', { type: 'button' }, { onclick: onClickRun }, 'run'),
       ]),
       table([
         h('b', '#'),
