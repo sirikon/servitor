@@ -251,29 +251,35 @@ component('x-job-list', [], () => {
     jobList.sort(((a, b) => a.job_id > b.job_id))
 
     const result = [];
-    let currentFolder = null;
+    let currentFolderParts = [];
 
     for (const job of jobList) {
       const parts = job.job_id.split('/');
-      const depth = parts.length - 1;
-      const folder = parts.length > 1
-        ? parts.slice(0, parts.length - 1).join('/')
-        : null
-
+      const name = parts[parts.length - 1];
+      const folderParts = parts.slice(0, parts.length - 1);
+      const folder = folderParts.join('/');
+      const currentFolder = currentFolderParts.join('/');
       if (folder !== currentFolder) {
-        currentFolder = folder;
-        result.push({
-          type: "folder",
-          name: parts[parts.length - 2],
-          depth: depth - 1
-        });
+        let i = 0;
+        while (i < Math.min(currentFolderParts.length, folderParts.length)) {
+          if (currentFolderParts[i] !== folderParts[i]) { break; }
+          i++;
+        }
+        while (i < folderParts.length) {
+          result.push({
+            type: "folder",
+            name: folderParts[i],
+            depth: i
+          });
+          i++;
+        }
+        currentFolderParts = folderParts;
       }
 
-      const name = parts[parts.length - 1];
       result.push({
         type: "job",
         name,
-        depth: depth,
+        depth: folderParts.length,
         link: `#job?job_id=${job.job_id}`
       })
     }
