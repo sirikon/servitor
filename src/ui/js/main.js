@@ -248,41 +248,48 @@ component('x-job-list', [], () => {
   const jobs = useJobs();
   const jobTree = useComputed(() => {
     const jobList = jobs.get()
-    jobList.sort(((a, b) => a.job_id > b.job_id))
-
+    const tree = { type: "folder", children: {} };
     const result = [];
-    let currentFolderParts = [];
 
     for (const job of jobList) {
       const parts = job.job_id.split('/');
       const name = parts[parts.length - 1];
       const folderParts = parts.slice(0, parts.length - 1);
-      const folder = folderParts.join('/');
-      const currentFolder = currentFolderParts.join('/');
-      if (folder !== currentFolder) {
-        let i = 0;
-        while (i < Math.min(currentFolderParts.length, folderParts.length)) {
-          if (currentFolderParts[i] !== folderParts[i]) { break; }
-          i++;
+      let treeNode = tree;
+      let depth = 0;
+      for (const folderPart of folderParts) {
+        treeNode.children[folderPart] = treeNode.children[folderPart] || { type: "folder", children: {}, depth };
+        treeNode = treeNode.children[folderPart];
+        depth++;
+      }
+      treeNode.children[name] = { type: "job", id: job.job_id, depth };
+    }
+
+    function extractItemsFromTreeNode(treeNode) {
+      const keys = Object.keys(treeNode.children);
+      keys.sort((a, b) => a > b);
+      for (const key of keys) {
+        if (treeNode.children[key].type === 'job') {
+          result.push({
+            type: "job",
+            name: key,
+            depth: treeNode.children[key].depth,
+            link: `#job?job_id=${treeNode.children[key].id}`
+          });
         }
-        while (i < folderParts.length) {
+      }
+      for (const key of keys) {
+        if (treeNode.children[key].type === 'folder') {
           result.push({
             type: "folder",
-            name: folderParts[i],
-            depth: i
+            name: key,
+            depth: treeNode.children[key].depth
           });
-          i++;
+          extractItemsFromTreeNode(treeNode.children[key]);
         }
-        currentFolderParts = folderParts;
       }
-
-      result.push({
-        type: "job",
-        name,
-        depth: folderParts.length,
-        link: `#job?job_id=${job.job_id}`
-      })
     }
+    extractItemsFromTreeNode(tree);
 
     return result;
   })
