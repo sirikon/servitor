@@ -14,28 +14,23 @@ class Config:
             config = json.load(f)
 
         result = []
-        for job_id, _ in config["jobs"].items():
-            result.append({"job_id": job_id, "input_spec": {}})
+        for job_id, spec in config["jobs"].items():
+            result.append(
+                {
+                    "job_id": job_id,
+                    "command": spec["command"],
+                    "workdir": getcwd(),
+                    "input_spec": {},
+                }
+            )
         return result
 
-        # def gen():
-        #     for filename in glob(
-        #         join(getcwd(), "config", "jobs", "**/*"), recursive=True
-        #     ):
-        #         if isfile(filename) and Path(filename).stat().st_mode & S_IXUSR:
-        #             job_id = relpath(filename, join(getcwd(), "config", "jobs"))
-        #             yield self.get_job(job_id)
-
-        # return sorted(list(gen()), key=lambda job: job["job_id"])
-
     def get_job(self, job_id: str):
-        job_paths = JobPathsBuilder(getcwd(), job_id)
-        try:
-            with open(job_paths.input_spec_file, "r") as f:
-                input_spec = json.load(f)
-        except FileNotFoundError:
-            input_spec = {}
-        return {"job_id": job_id, "input_spec": input_spec}
+        jobs = self.get_jobs()
+        for job in jobs:
+            if job["job_id"] == job_id:
+                return job
+        return None
 
 
 config = Config()
