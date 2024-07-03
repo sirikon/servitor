@@ -10,12 +10,13 @@ from servitor.paths import JobPathsBuilder
 
 class Config:
     def get_jobs(self):
-        return []
-        # with open("config.json", "r") as f:
-        #     config = json.load(f)
-        # for job in config["jobs"].items():
-            
-        
+        with open("config.json", "r") as f:
+            config = json.load(f)
+
+        result = []
+        for job_id, _ in config["jobs"].items():
+            result.append({"job_id": job_id, "input_spec": {}})
+        return result
 
         # def gen():
         #     for filename in glob(
