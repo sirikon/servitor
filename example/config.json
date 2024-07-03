@@ -1,0 +1,10 @@
+{
+    "jobs": {
+        "hello": {
+            "command": [
+                "echo",
+                "Hello World!"
+            ]
+        }
+    }
+}

@@ -10,15 +10,22 @@ from servitor.paths import JobPathsBuilder
 
 class Config:
     def get_jobs(self):
-        def gen():
-            for filename in glob(
-                join(getcwd(), "config", "jobs", "**/*"), recursive=True
-            ):
-                if isfile(filename) and Path(filename).stat().st_mode & S_IXUSR:
-                    job_id = relpath(filename, join(getcwd(), "config", "jobs"))
-                    yield self.get_job(job_id)
+        return []
+        # with open("config.json", "r") as f:
+        #     config = json.load(f)
+        # for job in config["jobs"].items():
+            
+        
 
-        return sorted(list(gen()), key=lambda job: job["job_id"])
+        # def gen():
+        #     for filename in glob(
+        #         join(getcwd(), "config", "jobs", "**/*"), recursive=True
+        #     ):
+        #         if isfile(filename) and Path(filename).stat().st_mode & S_IXUSR:
+        #             job_id = relpath(filename, join(getcwd(), "config", "jobs"))
+        #             yield self.get_job(job_id)
+
+        # return sorted(list(gen()), key=lambda job: job["job_id"])
 
     def get_job(self, job_id: str):
         job_paths = JobPathsBuilder(getcwd(), job_id)

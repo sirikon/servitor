@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -meuo pipefail
 
 TCP_PORT="40000"
 
@@ -13,11 +13,11 @@ function main() { (
     export PYTHONPATH="${root}/src/python"
     export SERVITOR_UI_ROOT="${root}/src/ui"
 
-    "${socat_cmd}" "TCP-LISTEN:${TCP_PORT},fork" "UNIX-CLIENT:./sockets/servitor.sock" &
-    log "started proxy on PID $!"
-    log "listening on http://127.0.0.1:${TCP_PORT}/"
+    "${python_cmd}" -m servitor "$@" &
+    log "started servitor on PID $!"
 
-    "${python_cmd}" -m servitor "$@"
+    log "proxy will listen on http://127.0.0.1:${TCP_PORT}/"
+    "${socat_cmd}" "TCP-LISTEN:${TCP_PORT},fork,reuseaddr" "UNIX-CLIENT:./sockets/servitor.sock"
 ); }
 
 function require_command() {
@@ -37,7 +37,9 @@ function cleanup() {
     log "cleaning up"
     jobs -l
     for job_pid in $(jobs -p); do
-        kill "${job_pid}"
+        log "killing ${job_pid}"
+        kill -INT "${job_pid}"
+        wait "${job_pid}"
     done
 }
 
