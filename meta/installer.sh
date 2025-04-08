@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-root="$(realpath "$(dirname "${BASH_SOURCE[0]}")/../..")"
+root="$(git rev-parse --show-toplevel)"
 SYSTEM_ROOT="$root/.installer-workdir"
 mkdir -p "$SYSTEM_ROOT"
 

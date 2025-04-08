@@ -39,7 +39,6 @@ def start():
         process.start()
 
     def shutdown_handler():
-        log.info("shutting down everything")
         for process in processes:
             process.terminate()
 

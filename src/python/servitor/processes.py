@@ -43,7 +43,6 @@ def start_http_server(shared_memory: SharedMemory, event_bus_client: EventBusCli
         sleep(0.1)
 
     def shutdown_handler():
-        log.info("asking http server to shut down")
         http_server.shutdown()
 
     handle_shutdown(shutdown_handler)
@@ -60,7 +59,6 @@ def start_job_worker(shared_memory: SharedMemory, event_bus_client: EventBusClie
     keep_alive = True
 
     def shutdown_handler():
-        log.info("asking job worker to shut down")
         nonlocal keep_alive
         keep_alive = False
 

@@ -4,20 +4,27 @@ set -euo pipefail
 TCP_PORT="40000"
 
 function main() { (
-    trap cleanup EXIT
-    root="$(realpath "$(dirname "${BASH_SOURCE[0]}")/../..")"
+    trap 'true' SIGINT SIGTERM
+
     python_cmd="$(require_command python3 python)"
     socat_cmd="$(require_command socat)"
 
-    cd "${root}/example"
+    root="$(git rev-parse --show-toplevel)"
     export PYTHONPATH="${root}/src/python"
     export SERVITOR_UI_ROOT="${root}/src/ui"
 
-    "${socat_cmd}" "TCP-LISTEN:${TCP_PORT},fork" "UNIX-CLIENT:./sockets/servitor.sock" &
-    log "started proxy on PID $!"
+    cd "example"
+
+    exec "${socat_cmd}" "TCP-LISTEN:${TCP_PORT},fork,reuseaddr" "UNIX-CLIENT:./sockets/servitor.sock" &
+    log "proxy PID: $!"
+    exec "${python_cmd}" -m servitor "$@" &
+    log "servitor PID: $!"
+
     log "listening on http://127.0.0.1:${TCP_PORT}/"
 
-    "${python_cmd}" -m servitor "$@"
+    wait -n || true
+    kill -s SIGINT -$$
+    wait
 ); }
 
 function require_command() {
@@ -31,14 +38,6 @@ function require_command() {
     log >&2 "Missing required command. Expected one of these:"
     log >&2 "  $*"
     exit 1
-}
-
-function cleanup() {
-    log "cleaning up"
-    jobs -l
-    for job_pid in $(jobs -p); do
-        kill "${job_pid}"
-    done
 }
 
 function log() {
